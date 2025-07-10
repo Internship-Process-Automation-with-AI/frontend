@@ -1,5 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
+import apiService from './api.js'
+import LoadingOverlay from './components/LoadingOverlay.jsx'
+import { useDocumentProcessing } from './hooks/useApiLoading.js'
 
 // Inline SVG Icon Components
 const UploadIcon = ({ className = "w-6 h-6", ...props }) => (
@@ -84,12 +87,14 @@ function App() {
     email: '',
     trainingType: ''
   })
-  const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
   const fileInputRef = useRef(null)
+  
+  // Use the new loading hook
+  const { isProcessing, progress } = useDocumentProcessing()
 
-  const degreePrograms = [
+  const [degreePrograms, setDegreePrograms] = useState([
     'Business Administration',
     'International Business',
     'Information Technology',
@@ -97,7 +102,35 @@ function App() {
     'Nursing',
     'Social Services',
     'Custom Degree'
-  ]
+  ])
+  const [apiHealth, setApiHealth] = useState(null)
+
+  // Load degree programs from API on component mount
+  useEffect(() => {
+    const loadDegreePrograms = async () => {
+      try {
+        const degrees = await apiService.getDegreePrograms()
+        if (degrees.length > 0) {
+          setDegreePrograms([...degrees, 'Custom Degree'])
+        }
+      } catch (error) {
+        console.warn('Failed to load degree programs from API, using defaults:', error)
+      }
+    }
+
+    const checkApiHealth = async () => {
+      try {
+        const health = await apiService.checkHealth()
+        setApiHealth(health)
+      } catch (error) {
+        console.warn('API health check failed:', error)
+        setApiHealth({ status: 'unhealthy', error: error.message })
+      }
+    }
+
+    loadDegreePrograms()
+    checkApiHealth()
+  }, [])
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0]
@@ -111,66 +144,21 @@ function App() {
   }
 
   const handleSubmit = async () => {
-    setIsProcessing(true)
     setError(null)
     
     try {
-      // Simulate API call - replace with actual backend integration
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      // Call the real API
+      const results = await apiService.processDocument(
+        formData.document,
+        formData.degree,
+        formData.email,
+        formData.trainingType
+      )
       
-      // Mock results for demonstration
-      setResults({
-        success: true,
-        file_path: formData.document?.name || 'document.pdf',
-        student_degree: formData.degree,
-        student_email: formData.email,
-        requested_training_type: formData.trainingType,
-        processing_time: 3.2,
-        ocr_results: {
-          success: true,
-          engine: 'Tesseract',
-          confidence: 95.2,
-          processing_time: 1.8,
-          text_length: 1247,
-          detected_language: 'en',
-          finnish_chars_count: 0
-        },
-        llm_results: {
-          success: true,
-          model_used: 'Gemini Pro',
-          processing_time: 1.4,
-          stages_completed: {
-            extraction: true,
-            evaluation: true,
-            validation: true,
-            correction: true
-          },
-          evaluation_results: {
-            success: true,
-            results: {
-              total_working_hours: 1040,
-              requested_training_type: formData.trainingType,
-              credits_calculated: formData.trainingType === 'general' ? 10 : 30,
-              degree_relevance: formData.trainingType === 'professional' ? 'high' : 'low',
-              relevance_explanation: 'Work experience analysis based on degree requirements',
-              calculation_breakdown: '6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, capped appropriately',
-              supporting_evidence: 'Demonstrated relevant skills and responsibilities',
-              challenging_evidence: 'Some tasks may not directly align with degree requirements',
-              recommendation: formData.trainingType === 'professional' ? 'RECOMMENDED' : 'CONDITIONALLY RECOMMENDED',
-              recommendation_reasoning: 'Based on analysis of work experience against degree criteria',
-              summary_justification: 'This work experience provides valuable learning outcomes relevant to the degree program.',
-              conclusion: `Student receives ${formData.trainingType === 'general' ? '10.0' : '30.0'} ECTS credits as ${formData.trainingType} training.`,
-              confidence_level: 'high'
-            }
-          }
-        }
-      })
-      
+      setResults(results)
       setCurrentStep(4)
     } catch (err) {
-      setError('Processing failed. Please try again.')
-    } finally {
-      setIsProcessing(false)
+      setError(err.message || 'Processing failed. Please try again.')
     }
   }
 
@@ -440,6 +428,46 @@ function App() {
           </div>
         </div>
 
+        {/* Storage Information */}
+        {results.storage_info && (
+          <div className="card">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+              <svg className="w-6 h-6 text-oamk-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+              </svg>
+              Storage Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Document Folder</label>
+                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded font-mono">
+                  {results.storage_info.document_folder}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Results File</label>
+                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded font-mono">
+                  {results.storage_info.results_file}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">OCR Text File</label>
+                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded font-mono">
+                  {results.storage_info.ocr_text_file}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Files in Folder</label>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div>📄 Original document</div>
+                  <div>📊 Complete results (JSON)</div>
+                  <div>📝 OCR extracted text</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Evaluation Results */}
         <div className="card">
           <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -493,8 +521,8 @@ function App() {
             </div>
           </div>
           
-          {/* Recommendation */}
-          {evalData.recommendation && (
+          {/* Recommendation - only for rejected cases */}
+          {evalData.recommendation && evalData.decision === 'REJECTED' && (
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center mb-2">
                 <TargetIcon className="w-5 h-5 text-blue-600 mr-2" />
@@ -515,11 +543,31 @@ function App() {
             </div>
           )}
           
-          {/* Conclusion */}
-          {evalData.conclusion && (
+          {/* Decision */}
+          {evalData.decision && (
             <div className="mt-4 p-4 bg-oamk-orange-50 border border-oamk-orange-200 rounded-lg">
-              <h4 className="font-semibold text-oamk-orange-800 mb-2">Conclusion</h4>
-              <p className="text-oamk-orange-700">{evalData.conclusion}</p>
+              <h4 className="font-semibold text-oamk-orange-800 mb-2">Decision</h4>
+              <div className="flex items-center mb-2">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  evalData.decision === 'ACCEPTED' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {evalData.decision}
+                </span>
+                {evalData.credits_calculated && (
+                  <span className="ml-2 text-sm text-oamk-orange-700">
+                    (STUDENT RECEIVES {evalData.credits_calculated} ECTS AS {
+                      evalData.decision === 'REJECTED' 
+                        ? (evalData.training_type || 'GENERAL').toUpperCase()
+                        : (evalData.requested_training_type || evalData.training_type || 'GENERAL').toUpperCase()
+                    } TRAINING)
+                  </span>
+                )}
+              </div>
+              {evalData.justification && (
+                <p className="text-oamk-orange-700">{evalData.justification}</p>
+              )}
             </div>
           )}
         </div>
@@ -540,6 +588,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Loading Overlay */}
+      <LoadingOverlay />
+      
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -553,6 +604,20 @@ function App() {
                 <p className="text-sm text-gray-600">Academic Credit Evaluation System</p>
               </div>
             </div>
+            
+            {/* API Status Indicator */}
+            {apiHealth && (
+              <div className="flex items-center">
+                <div className={`w-3 h-3 rounded-full mr-2 ${
+                  apiHealth.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'
+                }`}></div>
+                <span className={`text-sm font-medium ${
+                  apiHealth.status === 'healthy' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  API {apiHealth.status === 'healthy' ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </header>
