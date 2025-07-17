@@ -1,5 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
+import apiService from './api.js'
+import LoadingOverlay from './components/LoadingOverlay.jsx'
+import { useDocumentProcessing } from './hooks/useApiLoading.js'
 
 // Inline SVG Icon Components
 const UploadIcon = ({ className = "w-6 h-6", ...props }) => (
@@ -82,22 +85,59 @@ function App() {
     document: null,
     degree: '',
     email: '',
-    trainingType: ''
+    trainingType: 'general'
   })
-  const [isProcessing, setIsProcessing] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [degreePrograms, setDegreePrograms] = useState([])
+  const [apiHealth, setApiHealth] = useState(null)
+  const [showApprovalView, setShowApprovalView] = useState(false)
+  const [selectedApprover, setSelectedApprover] = useState('')
+  const [approvalSent, setApprovalSent] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [userFeedback, setUserFeedback] = useState('')
+  const [isAnalysisRequest, setIsAnalysisRequest] = useState(false)
   const fileInputRef = useRef(null)
+  
+  // Use the new loading hook
+  const { isProcessing: apiIsProcessing, progress } = useDocumentProcessing()
 
-  const degreePrograms = [
-    'Business Administration',
-    'International Business',
-    'Information Technology',
-    'Engineering',
-    'Nursing',
-    'Social Services',
-    'Custom Degree'
+  // Mock approvers list - you can replace this with API call
+  const approvers = [
+    { id: '1', name: 'Dr. Anna Mäkinen', role: 'Head of Business Administration' },
+    { id: '2', name: 'Prof. Jussi Virtanen', role: 'Head of Information Technology' },
+    { id: '3', name: 'Dr. Maria Koskinen', role: 'Head of Engineering' },
+    { id: '4', name: 'Prof. Pekka Laaksonen', role: 'Head of Nursing' },
+    { id: '5', name: 'Dr. Liisa Järvinen', role: 'Head of Social Services' },
   ]
+
+  // Load degree programs from API on component mount
+  useEffect(() => {
+    const loadDegreePrograms = async () => {
+      try {
+        const degrees = await apiService.getDegreePrograms()
+        if (degrees.length > 0) {
+          setDegreePrograms([...degrees, 'Custom Degree'])
+        }
+      } catch (error) {
+        console.warn('Failed to load degree programs from API, using defaults:', error)
+      }
+    }
+
+    const checkApiHealth = async () => {
+      try {
+        const health = await apiService.checkHealth()
+        setApiHealth(health)
+      } catch (error) {
+        console.warn('API health check failed:', error)
+        setApiHealth({ status: 'unhealthy', error: error.message })
+      }
+    }
+
+    loadDegreePrograms()
+    checkApiHealth()
+  }, [])
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0]
@@ -111,66 +151,21 @@ function App() {
   }
 
   const handleSubmit = async () => {
-    setIsProcessing(true)
     setError(null)
     
     try {
-      // Simulate API call - replace with actual backend integration
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      // Call the real API
+      const results = await apiService.processDocument(
+        formData.document,
+        formData.degree,
+        formData.email,
+        formData.trainingType
+      )
       
-      // Mock results for demonstration
-      setResults({
-        success: true,
-        file_path: formData.document?.name || 'document.pdf',
-        student_degree: formData.degree,
-        student_email: formData.email,
-        requested_training_type: formData.trainingType,
-        processing_time: 3.2,
-        ocr_results: {
-          success: true,
-          engine: 'Tesseract',
-          confidence: 95.2,
-          processing_time: 1.8,
-          text_length: 1247,
-          detected_language: 'en',
-          finnish_chars_count: 0
-        },
-        llm_results: {
-          success: true,
-          model_used: 'Gemini Pro',
-          processing_time: 1.4,
-          stages_completed: {
-            extraction: true,
-            evaluation: true,
-            validation: true,
-            correction: true
-          },
-          evaluation_results: {
-            success: true,
-            results: {
-              total_working_hours: 1040,
-              requested_training_type: formData.trainingType,
-              credits_calculated: formData.trainingType === 'general' ? 10 : 30,
-              degree_relevance: formData.trainingType === 'professional' ? 'high' : 'low',
-              relevance_explanation: 'Work experience analysis based on degree requirements',
-              calculation_breakdown: '6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, capped appropriately',
-              supporting_evidence: 'Demonstrated relevant skills and responsibilities',
-              challenging_evidence: 'Some tasks may not directly align with degree requirements',
-              recommendation: formData.trainingType === 'professional' ? 'RECOMMENDED' : 'CONDITIONALLY RECOMMENDED',
-              recommendation_reasoning: 'Based on analysis of work experience against degree criteria',
-              summary_justification: 'This work experience provides valuable learning outcomes relevant to the degree program.',
-              conclusion: `Student receives ${formData.trainingType === 'general' ? '10.0' : '30.0'} ECTS credits as ${formData.trainingType} training.`,
-              confidence_level: 'high'
-            }
-          }
-        }
-      })
-      
+      setResults(results)
       setCurrentStep(4)
     } catch (err) {
-      setError('Processing failed. Please try again.')
-    } finally {
-      setIsProcessing(false)
+      setError(err.message || 'Processing failed. Please try again.')
     }
   }
 
@@ -179,14 +174,50 @@ function App() {
       document: null,
       degree: '',
       email: '',
-      trainingType: ''
+      trainingType: 'general'
     })
     setResults(null)
     setError(null)
     setCurrentStep(1)
+    setShowApprovalView(false)
+    setSelectedApprover('')
+    setApprovalSent(false)
+    setShowFeedback(false)
+    setUserFeedback('')
+    setIsAnalysisRequest(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+  }
+
+  const handleSendForApproval = () => {
+    setShowApprovalView(true)
+    setIsAnalysisRequest(false)
+  }
+
+  const handleAddFeedback = () => {
+    setShowFeedback(true)
+  }
+
+  const handleRequestAnalysis = () => {
+    if (!userFeedback.trim()) {
+      alert('Please provide feedback before requesting analysis')
+      return
+    }
+    setShowApprovalView(true)
+    setIsAnalysisRequest(true)
+  }
+
+  const handleApprovalSubmit = () => {
+    if (!selectedApprover) {
+      alert('Please select an approver')
+      return
+    }
+    setApprovalSent(true)
+  }
+
+  const handleProcessAnother = () => {
+    resetForm()
   }
 
   const canProceed = () => {
@@ -414,7 +445,7 @@ function App() {
         </div>
 
         {/* Basic Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="card">
             <div className="flex items-center mb-2">
               <FileTextIcon className="w-5 h-5 text-oamk-orange-500 mr-2" />
@@ -430,15 +461,47 @@ function App() {
             </div>
             <p className="text-gray-600">{results.student_degree}</p>
           </div>
-          
-          <div className="card">
-            <div className="flex items-center mb-2">
-              <ClockIcon className="w-5 h-5 text-oamk-orange-500 mr-2" />
-              <h3 className="font-semibold">Processing Time</h3>
-            </div>
-            <p className="text-gray-600">{results.processing_time?.toFixed(1)}s</p>
-          </div>
         </div>
+
+        {/* Storage Information */}
+        {results.storage_info && (
+          <div className="card">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+              <svg className="w-6 h-6 text-oamk-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+              </svg>
+              Storage Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Document Folder</label>
+                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded font-mono">
+                  {results.storage_info.document_folder}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Results File</label>
+                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded font-mono">
+                  {results.storage_info.results_file}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">OCR Text File</label>
+                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded font-mono">
+                  {results.storage_info.ocr_text_file}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Files in Folder</label>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div>📄 Original document</div>
+                  <div>📊 Complete results (JSON)</div>
+                  <div>📝 OCR extracted text</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Evaluation Results */}
         <div className="card">
@@ -493,8 +556,30 @@ function App() {
             </div>
           </div>
           
-          {/* Recommendation */}
-          {evalData.recommendation && (
+          {/* Decision - ONLY the decision, no extra text */}
+          {evalData.decision && (
+            <div className="mt-4 p-4 bg-oamk-orange-50 border border-oamk-orange-200 rounded-lg">
+              <h4 className="font-semibold text-oamk-orange-800 mb-2">Decision</h4>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                evalData.decision === 'ACCEPTED' 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {evalData.decision}
+              </span>
+            </div>
+          )}
+
+          {/* Justification */}
+          {evalData.justification && (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-gray-600">Justification</label>
+              <p className="text-gray-700 mt-1">{evalData.justification}</p>
+            </div>
+          )}
+
+          {/* Recommendation - only for rejected cases */}
+          {evalData.recommendation && evalData.decision === 'REJECTED' && (
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center mb-2">
                 <TargetIcon className="w-5 h-5 text-blue-600 mr-2" />
@@ -506,32 +591,205 @@ function App() {
               )}
             </div>
           )}
-          
-          {/* Justification */}
-          {evalData.summary_justification && (
-            <div className="mt-4">
-              <label className="text-sm font-medium text-gray-600">Justification</label>
-              <p className="text-gray-700 mt-1">{evalData.summary_justification}</p>
-            </div>
-          )}
-          
-          {/* Conclusion */}
-          {evalData.conclusion && (
-            <div className="mt-4 p-4 bg-oamk-orange-50 border border-oamk-orange-200 rounded-lg">
-              <h4 className="font-semibold text-oamk-orange-800 mb-2">Conclusion</h4>
-              <p className="text-oamk-orange-700">{evalData.conclusion}</p>
-            </div>
-          )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">
-          <button onClick={resetForm} className="btn-secondary">
-            Process Another Document
-          </button>
-          <button className="btn-primary">
-            <DownloadIcon className="w-4 h-4 mr-2" />
-            Download Report
+          {evalData.decision === 'REJECTED' ? (
+            <>
+              <button 
+                disabled 
+                className="btn-primary opacity-50 cursor-not-allowed"
+                title="Approval not available for rejected applications"
+              >
+                <TargetIcon className="w-4 h-4 mr-2" />
+                Send for Approval
+              </button>
+              <button onClick={handleAddFeedback} className="btn-secondary">
+                <LightbulbIcon className="w-4 h-4 mr-2" />
+                Add Your Feedback
+              </button>
+            </>
+          ) : (
+            <button onClick={handleSendForApproval} className="btn-primary">
+              <TargetIcon className="w-4 h-4 mr-2" />
+              Send for Approval
+            </button>
+          )}
+        </div>
+
+        {/* Feedback Section - only for rejected cases */}
+        {showFeedback && evalData.decision === 'REJECTED' && (
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center mb-4">
+              <LightbulbIcon className="w-5 h-5 text-yellow-600 mr-2" />
+              <h4 className="font-semibold text-yellow-800">Provide Feedback</h4>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-yellow-700 mb-2">
+                  Please provide additional information or feedback about your work experience:
+                </label>
+                <textarea
+                  value={userFeedback}
+                  onChange={(e) => setUserFeedback(e.target.value)}
+                  placeholder="Describe your work experience in more detail, explain how it relates to your degree program, or provide any additional context that might help with the evaluation..."
+                  className="w-full p-3 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 resize-none"
+                  rows="6"
+                />
+              </div>
+              <div className="flex justify-center">
+                <button 
+                  onClick={handleRequestAnalysis}
+                  disabled={!userFeedback.trim()}
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <TargetIcon className="w-4 h-4 mr-2" />
+                  Request Analysis
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderApprovalView = () => {
+    if (approvalSent) {
+      return (
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Success Notification */}
+          <div className="card text-center">
+            <CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              {isAnalysisRequest ? 'Analysis Request Sent' : 'Credit Application Sent for Approval'}
+            </h2>
+            <p className="text-gray-600 mb-4">
+              {isAnalysisRequest 
+                ? 'The teacher will review your feedback and provide a new analysis. You will receive a notification of the updated decision.'
+                : 'The teacher will review your application and you will receive a notification of the final decision.'
+              }
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <TargetIcon className="w-5 h-5 text-blue-600 mr-2" />
+                <h4 className="font-semibold text-blue-800">
+                  {isAnalysisRequest ? 'Analysis Request Details' : 'Application Details'}
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                <div>
+                  <label className="text-sm font-medium text-blue-600">Document</label>
+                  <p className="text-blue-800">{results.file_path}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-blue-600">Reviewer</label>
+                  <p className="text-blue-800">
+                    {approvers.find(a => a.id === selectedApprover)?.name || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-blue-600">Student</label>
+                  <p className="text-blue-800">{results.student_email}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-blue-600">Degree</label>
+                  <p className="text-blue-800">{results.student_degree}</p>
+                </div>
+              </div>
+              {isAnalysisRequest && userFeedback && (
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <label className="text-sm font-medium text-blue-600">Your Feedback</label>
+                  <p className="text-blue-800 text-sm bg-blue-100 p-3 rounded mt-1">
+                    {userFeedback}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-center space-x-4">
+            <button onClick={handleProcessAnother} className="btn-primary">
+              <FileTextIcon className="w-4 h-4 mr-2" />
+              Process Another Document
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="card text-center">
+          <TargetIcon className="w-16 h-16 text-oamk-orange-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {isAnalysisRequest ? 'Request Analysis' : 'Send for Approval'}
+          </h2>
+          <p className="text-gray-600">
+            {isAnalysisRequest 
+              ? 'Select a teacher to review your feedback and provide a new analysis'
+              : 'Select an approver to review your credit application'
+            }
+          </p>
+        </div>
+
+        {/* Approver Selection */}
+        <div className="card">
+          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <GraduationCapIcon className="w-6 h-6 text-oamk-orange-500 mr-2" />
+            Select {isAnalysisRequest ? 'Reviewer' : 'Approver'}
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Choose a {isAnalysisRequest ? 'reviewer' : 'approver'} from the list below:
+              </label>
+              <select
+                value={selectedApprover}
+                onChange={(e) => setSelectedApprover(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-oamk-orange-500 focus:border-oamk-orange-500"
+              >
+                <option value="">Select a {isAnalysisRequest ? 'reviewer' : 'approver'}...</option>
+                {approvers.map((approver) => (
+                  <option key={approver.id} value={approver.id}>
+                    {approver.name} - {approver.role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedApprover && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center mb-2">
+                  <CheckCircleIcon className="w-5 h-5 text-blue-600 mr-2" />
+                  <h4 className="font-semibold text-blue-800">
+                    Selected {isAnalysisRequest ? 'Reviewer' : 'Approver'}
+                  </h4>
+                </div>
+                <p className="text-blue-700">
+                  <strong>{approvers.find(a => a.id === selectedApprover)?.name}</strong>
+                </p>
+                <p className="text-blue-600 text-sm">
+                  {approvers.find(a => a.id === selectedApprover)?.role}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-center space-x-4">
+          <button 
+            onClick={handleApprovalSubmit}
+            disabled={!selectedApprover}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <TargetIcon className="w-4 h-4 mr-2" />
+            {isAnalysisRequest ? 'Request Analysis' : 'Send for Approval'}
           </button>
         </div>
       </div>
@@ -540,6 +798,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Loading Overlay */}
+      <LoadingOverlay />
+      
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -553,6 +814,20 @@ function App() {
                 <p className="text-sm text-gray-600">Academic Credit Evaluation System</p>
               </div>
             </div>
+            
+            {/* API Status Indicator */}
+            {apiHealth && (
+              <div className="flex items-center">
+                <div className={`w-3 h-3 rounded-full mr-2 ${
+                  apiHealth.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'
+                }`}></div>
+                <span className={`text-sm font-medium ${
+                  apiHealth.status === 'healthy' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  API {apiHealth.status === 'healthy' ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -588,10 +863,10 @@ function App() {
               ) : (
                 <button
                   onClick={handleSubmit}
-                  disabled={isProcessing}
+                  disabled={apiIsProcessing}
                   className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isProcessing ? (
+                  {apiIsProcessing ? (
                     <>
                       <LoaderIcon className="w-4 h-4 mr-2" />
                       Processing...
@@ -613,7 +888,7 @@ function App() {
             )}
           </>
         ) : (
-          renderResults()
+          showApprovalView ? renderApprovalView() : renderResults()
         )}
       </main>
     </div>
