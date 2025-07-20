@@ -18,14 +18,14 @@ const EmailEntry = ({
             <div className="bg-gradient-to-r from-oamk-orange-500 to-oamk-orange-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg">
               <GraduationCapIcon className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
-            <p className="text-gray-600">Enter your OAMK student email to continue</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Student Portal</h2>
+            <p className="text-gray-600">Access your training credit applications</p>
           </div>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Student Email
+              <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+                Enter your student email
               </label>
               <div className="relative">
                 <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />

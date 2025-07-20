@@ -215,12 +215,21 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Appeal Information</h2>
               <div className="space-y-4">
                 
-                {application.appeal_submitted_date && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Appeal Submitted</label>
-                    <p className="text-gray-800">{formatDate(application.appeal_submitted_date)}</p>
-                  </div>
-                )}
+                                  {application.appeal_submitted_date && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Appeal Submitted</label>
+                      <p className="text-gray-800">{formatDate(application.appeal_submitted_date)}</p>
+                    </div>
+                  )}
+                  
+                  {application.appeal_reason && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Appeal Message</label>
+                      <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                        <p className="text-gray-800 whitespace-pre-wrap">{application.appeal_reason}</p>
+                      </div>
+                    </div>
+                  )}
                 
                 {application.appeal_reviewer_name && (
                   <div>
