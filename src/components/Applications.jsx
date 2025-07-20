@@ -2,7 +2,7 @@ import { ClockIcon, CheckCircleIcon, AlertCircleIcon, DownloadIcon, UserIcon } f
 import Header from './Header.jsx'
 import { useState } from 'react'
 
-const Applications = ({ applications, onBackToDashboard, onDeleteApplication }) => {
+const Applications = ({ applications, onBackToDashboard, onDeleteApplication, onViewApplicationDetails }) => {
   const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState(null)
 
@@ -92,7 +92,11 @@ const Applications = ({ applications, onBackToDashboard, onDeleteApplication }) 
         ) : (
           <div className="space-y-4">
             {applications.map((app, index) => (
-              <div key={index} className="card hover:shadow-lg transition-shadow duration-200">
+              <div 
+                key={index} 
+                className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+                onClick={() => onViewApplicationDetails(app)}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     {getStatusIcon(app.status)}

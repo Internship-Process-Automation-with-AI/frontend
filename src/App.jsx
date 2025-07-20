@@ -6,6 +6,7 @@ import ReviewSubmit from './components/ReviewSubmit'
 import Results from './components/Results'
 import Approval from './components/Approval'
 import RequestReview from './components/RequestReview'
+import ApplicationDetails from './components/ApplicationDetails'
 import Applications from './components/Applications'
 import ProcessingModal from './components/ProcessingModal'
 import LoadingOverlay from './components/LoadingOverlay'
@@ -24,6 +25,7 @@ function App() {
   const [userFeedback, setUserFeedback] = useState('')
   const [applications, setApplications] = useState([])
   const [certificateId, setCertificateId] = useState(null)
+  const [selectedApplication, setSelectedApplication] = useState(null)
   
   // Processing state
   const [isDocumentProcessing, setIsDocumentProcessing] = useState(false)
@@ -259,6 +261,17 @@ function App() {
     setResults(null)
     setUserFeedback('')
     setCertificateId(null)
+    setSelectedApplication(null)
+  }
+
+  const handleViewApplicationDetails = (application) => {
+    setSelectedApplication(application)
+    setCurrentView('application-details')
+  }
+
+  const handleBackToApplications = () => {
+    setCurrentView('applications')
+    setSelectedApplication(null)
   }
 
   const handleLogout = () => {
@@ -350,12 +363,21 @@ function App() {
           />
         )
       
-      case 'applications':
-    return (
+            case 'applications':
+        return (
           <Applications
             applications={applications}
             onBackToDashboard={handleBackToDashboard}
             onDeleteApplication={handleDeleteApplication}
+            onViewApplicationDetails={handleViewApplicationDetails}
+          />
+        )
+      
+      case 'application-details':
+    return (
+          <ApplicationDetails
+            application={selectedApplication}
+            onBackToApplications={handleBackToApplications}
           />
         )
       
