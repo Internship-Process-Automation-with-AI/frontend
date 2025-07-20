@@ -1,51 +1,42 @@
-import { useState, useRef, useEffect } from 'react'
-import './App.css'
-import apiService from './api.js'
-import LoadingOverlay from './components/LoadingOverlay.jsx'
-import { useDocumentProcessing } from './hooks/useApiLoading.js'
-
-// Import components
-import EmailEntry from './components/EmailEntry.jsx'
-import Dashboard from './components/Dashboard.jsx'
-import UploadCertificate from './components/UploadCertificate.jsx'
-import ReviewSubmit from './components/ReviewSubmit.jsx'
-import ProcessingModal from './components/ProcessingModal.jsx'
-import Feedback from './components/Feedback.jsx'
-import Applications from './components/Applications.jsx'
+import React, { useState, useRef } from 'react'
+import EmailEntry from './components/EmailEntry'
+import Dashboard from './components/Dashboard'
+import UploadCertificate from './components/UploadCertificate'
+import ReviewSubmit from './components/ReviewSubmit'
+import Results from './components/Results'
+import Approval from './components/Approval'
+import RequestReview from './components/RequestReview'
+import Applications from './components/Applications'
+import ProcessingModal from './components/ProcessingModal'
+import LoadingOverlay from './components/LoadingOverlay'
 
 function App() {
-  // App states following the user flow diagram
-  const [currentView, setCurrentView] = useState('email-entry') // email-entry, dashboard, upload, process, feedback, applications
+  // State management
+  const [currentView, setCurrentView] = useState('email-entry')
   const [studentEmail, setStudentEmail] = useState('')
   const [studentData, setStudentData] = useState(null)
-  const [formData, setFormData] = useState({
-    document: null,
-    trainingType: ''
-  })
+  const [formData, setFormData] = useState({ document: null, trainingType: '' })
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [isDocumentProcessing, setIsDocumentProcessing] = useState(false)
-  const [processingStage, setProcessingStage] = useState(0)
-  const [processingProgress, setProcessingProgress] = useState(0)
-  const [showFeedback, setShowFeedback] = useState(false)
+  const [apiIsProcessing, setApiIsProcessing] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [userFeedback, setUserFeedback] = useState('')
   const [applications, setApplications] = useState([])
   const [certificateId, setCertificateId] = useState(null)
+  
+  // Processing state
+  const [isDocumentProcessing, setIsDocumentProcessing] = useState(false)
+  const [processingStage, setProcessingStage] = useState(0)
+  const [processingProgress, setProcessingProgress] = useState(0)
+  
+  // Refs
   const fileInputRef = useRef(null)
   
-  // Use the new loading hook
-  const { isProcessing: apiIsProcessing, progress } = useDocumentProcessing()
-
-  // Load student data when email is validated
+  // Email submission handler
   const handleEmailSubmit = async () => {
     if (!studentEmail.trim()) {
-      setError('Please enter your email address')
-      return
-    }
-
-    if (!studentEmail.includes('@students.oamk.fi')) {
-      setError('Please use your OAMK student email address')
+      setError('Please enter your email address.')
       return
     }
 
@@ -53,36 +44,36 @@ function App() {
       setError(null)
       setIsProcessing(true)
       
-      // Call the backend API to get student data
       const response = await fetch(`http://localhost:8000/student/${encodeURIComponent(studentEmail)}`)
       
-      if (response.ok) {
-        const data = await response.json()
-        setStudentData(data)
-        
-        // Fetch applications with decision information
-        try {
-          const applicationsResponse = await fetch(`http://localhost:8000/student/${encodeURIComponent(studentEmail)}/applications`)
-          if (applicationsResponse.ok) {
-            const applicationsData = await applicationsResponse.json()
-            setApplications(applicationsData.applications || [])
-          }
-        } catch (err) {
-          console.warn('Failed to fetch applications:', err)
-          setApplications([])
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || 'Failed to verify student')
+      }
+
+      const studentData = await response.json()
+      setStudentData(studentData)
+      setCurrentView('dashboard')
+      
+      // Fetch applications for this student
+      try {
+        const applicationsResponse = await fetch(`http://localhost:8000/student/${encodeURIComponent(studentEmail)}/applications`)
+        if (applicationsResponse.ok) {
+          const applicationsData = await applicationsResponse.json()
+          setApplications(applicationsData.applications || [])
         }
-        
-        setCurrentView('dashboard')
-      } else {
-        setError('Student not found. Please check your email address.')
+      } catch (err) {
+        console.warn('Failed to fetch applications:', err)
       }
     } catch (err) {
-      setError('Failed to verify student. Please try again.')
+      console.error('Email submission error:', err)
+      setError(err.message || 'Failed to verify student. Please try again.')
     } finally {
       setIsProcessing(false)
     }
   }
 
+  // File selection handler
   const handleFileSelect = (event) => {
     const file = event.target.files[0]
     if (file) {
@@ -90,18 +81,25 @@ function App() {
     }
   }
 
+  // Input change handler
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  // Upload certificate handler
   const handleUploadCertificate = () => {
     if (!formData.document) {
-      setError('Please select a file first')
+      setError('Please select a document.')
+      return
+    }
+    if (!formData.trainingType) {
+      setError('Please select a training type.')
       return
     }
     setCurrentView('review')
   }
 
+  // Process with AI handler
   const handleProcessWithAI = async () => {
     try {
       setError(null)
@@ -129,7 +127,7 @@ function App() {
       
       const uploadResult = await uploadResponse.json()
       const certificateId = uploadResult.certificate_id
-      setCertificateId(certificateId) // Store certificateId
+      setCertificateId(certificateId)
       
       setProcessingProgress(25)
       
@@ -141,36 +139,22 @@ function App() {
         method: 'POST'
       })
       
-      console.log('Process response status:', processResponse.status)
-      console.log('Process response headers:', processResponse.headers)
-      
       if (!processResponse.ok) {
         const errorData = await processResponse.json().catch(() => ({}))
-        console.error('Process error response:', errorData)
         throw new Error(errorData.detail || 'Failed to process certificate')
       }
       
       const processResult = await processResponse.json()
-      console.log('Process result:', processResult)
-      
       setProcessingProgress(100)
-      setProcessingStage(5) // Final stage
+      setProcessingStage(5)
       
       // Extract results from backend response
       const llmResults = processResult.llm_results
       const decision = processResult.decision
       const evaluationResults = llmResults.evaluation_results?.results || {}
       
-      console.log('LLM Results:', llmResults)
-      console.log('Decision:', decision)
-      console.log('Evaluation Results:', evaluationResults)
-      console.log('Form Data Training Type:', formData.trainingType)
-      console.log('Evaluation Results Requested Training Type:', evaluationResults.requested_training_type)
-      
-      // Check if LLM processing failed
+      // Set results based on LLM processing success
       if (!llmResults.success) {
-        console.warn('LLM processing failed:', llmResults.error)
-        // Still show results but with error indication
         setResults({
           success: false,
           decision: decision.ai_decision || 'PENDING',
@@ -182,7 +166,7 @@ function App() {
           summary: llmResults.error || 'LLM processing failed. Please check your configuration.'
         })
       } else {
-                setResults({
+        setResults({
           success: llmResults.success,
           decision: decision.ai_decision,
           training_hours: evaluationResults.total_working_hours || 0,
@@ -199,11 +183,11 @@ function App() {
           recommendation: evaluationResults.recommendation || '',
           justification: evaluationResults.justification || '',
           filename: formData.document?.name || 'Document',
-          student_degree: student.degree || 'Not specified',
+          student_degree: studentData?.degree || 'Not specified',
         })
       }
       
-      setCurrentView('feedback')
+      setCurrentView('results')
     } catch (err) {
       console.error('Processing error:', err)
       setError(err.message || 'Processing failed. Please try again.')
@@ -212,78 +196,69 @@ function App() {
     }
   }
 
-  const handleSendFeedback = async () => {
-    if (!certificateId) {
-      setError('Certificate ID not available. Cannot send feedback.')
-      return
-    }
+  // Send for approval handler
+  const handleSendForApproval = () => {
+    setCurrentView('approval')
+  }
 
-    if (!userFeedback.trim()) {
-      setError('Please provide feedback.')
-      return
-    }
-
+  // Refresh applications list
+  const refreshApplications = async () => {
     try {
-      setError(null)
-      setIsProcessing(true)
-      
-      const feedbackPayload = {
-        student_feedback: userFeedback,
-        reviewer_id: null // Optional, can be null for student feedback
+      const applicationsResponse = await fetch(`http://localhost:8000/student/${encodeURIComponent(studentEmail)}/applications`)
+      if (applicationsResponse.ok) {
+        const applicationsData = await applicationsResponse.json()
+        setApplications(applicationsData.applications || [])
       }
+    } catch (err) {
+      console.warn('Failed to refresh applications:', err)
+    }
+  }
 
-      const response = await fetch(`http://localhost:8000/certificate/${certificateId}/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(feedbackPayload)
+  // Request review handler (appeal process)
+  const handleRequestReview = () => {
+    setCurrentView('request-review')
+  }
+
+  // Submit new application handler
+  const handleSubmitNewApplication = () => {
+    // Clear form data and go back to upload
+    setFormData({ document: null, trainingType: '' })
+    setResults(null)
+    setCurrentView('upload')
+  }
+
+  // Delete application handler
+  const handleDeleteApplication = async (applicationId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/certificate/${applicationId}`, {
+        method: 'DELETE'
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || 'Failed to send feedback')
+        throw new Error(errorData.detail || 'Failed to delete application')
       }
 
-      const result = await response.json()
-      console.log('Feedback submitted successfully:', result)
-      setShowFeedback(true)
-      
-      // Refresh applications list from backend
-      try {
-        const applicationsResponse = await fetch(`http://localhost:8000/student/${encodeURIComponent(studentEmail)}/applications`)
-        if (applicationsResponse.ok) {
-          const applicationsData = await applicationsResponse.json()
-          setApplications(applicationsData.applications || [])
-        }
-      } catch (err) {
-        console.warn('Failed to refresh applications:', err)
-      }
-      
-      // Clear form data
-      setFormData({ document: null, trainingType: '' })
-      setUserFeedback('')
-      setCertificateId(null) // Clear certificateId after feedback
+      // Remove the application from the local state
+      setApplications(prev => prev.filter(app => (app.certificate_id || app.id) !== applicationId))
     } catch (err) {
-      console.error('Feedback submission error:', err)
-      setError(err.message || 'Failed to send feedback. Please try again.')
-    } finally {
-      setIsProcessing(false)
+      console.error('Delete application error:', err)
+      throw new Error(err.message || 'Failed to delete application')
     }
   }
 
+  // Navigation handlers
   const handleViewApplications = () => {
     setCurrentView('applications')
   }
 
   const handleBackToDashboard = () => {
     setCurrentView('dashboard')
-    // Clear form data when going back to dashboard
     setFormData({ document: null, trainingType: '' })
     setError(null)
     setResults(null)
     setUserFeedback('')
-    setCertificateId(null) // Clear certificateId when going back
+    setCertificateId(null)
   }
 
   const handleLogout = () => {
@@ -295,10 +270,10 @@ function App() {
     setError(null)
     setUserFeedback('')
     setApplications([])
-    setCertificateId(null) // Clear certificateId on logout
+    setCertificateId(null)
   }
 
-  // Render the appropriate view based on currentView state
+  // Render current view
   const renderCurrentView = () => {
     switch (currentView) {
       case 'email-entry':
@@ -344,27 +319,48 @@ function App() {
           />
         )
       
-      case 'feedback':
+      case 'results':
         return (
-          <Feedback
+          <Results
             results={results}
-            userFeedback={userFeedback}
-            setUserFeedback={setUserFeedback}
-            onSendFeedback={handleSendFeedback}
             onBackToDashboard={handleBackToDashboard}
+            onSendForApproval={handleSendForApproval}
+            onRequestReview={handleRequestReview}
+            onSubmitNewApplication={handleSubmitNewApplication}
+          />
+        )
+      
+      case 'approval':
+        return (
+          <Approval
+            results={results}
+            onBackToDashboard={handleBackToDashboard}
+            certificateId={certificateId}
+            onRefreshApplications={refreshApplications}
+          />
+        )
+      
+      case 'request-review':
+        return (
+          <RequestReview
+            results={results}
+            onBackToDashboard={handleBackToDashboard}
+            certificateId={certificateId}
+            onRefreshApplications={refreshApplications}
           />
         )
       
       case 'applications':
-        return (
+    return (
           <Applications
             applications={applications}
             onBackToDashboard={handleBackToDashboard}
+            onDeleteApplication={handleDeleteApplication}
           />
         )
       
       default:
-        return (
+      return (
           <EmailEntry
             studentEmail={studentEmail}
             setStudentEmail={setStudentEmail}

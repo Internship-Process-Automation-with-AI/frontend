@@ -52,15 +52,15 @@ const EmailEntry = ({
             <button
               onClick={onEmailSubmit}
               disabled={isProcessing}
-              className="btn-primary w-full h-12 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              className="btn-primary w-full h-12 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
             >
               {isProcessing ? (
                 <>
-                  <LoaderIcon className="w-5 h-5 mr-2" />
-                  Verifying...
+                  <LoaderIcon className="w-5 h-5 mr-2 animate-spin" />
+                  <span>Verifying...</span>
                 </>
               ) : (
-                'Continue'
+                <span>Continue</span>
               )}
             </button>
           </div>
