@@ -52,7 +52,7 @@ const EmailEntry = ({
             <button
               onClick={onEmailSubmit}
               disabled={isProcessing}
-              className="btn-primary w-full h-12 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              className="btn-primary w-full h-12 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
             >
               {isProcessing ? (
                 <>
