@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
-import apiService from '../api.js'
+import {
+  getReviewerByEmail,
+  getReviewerCertificates,
+  submitCertificateReview,
+  downloadAndSaveCertificate
+} from '../api_calls/reviewerApi.js'
 
 // Inline SVG Icon Components
 const FileTextIcon = ({ className = "w-6 h-6", ...props }) => (
@@ -59,94 +64,44 @@ const InboxIcon = ({ className = "w-6 h-6", ...props }) => (
 )
 
 function Reviewer() {
+  // Use a hardcoded reviewer email for getReviewerByEmail
+  const reviewerEmail = 'reviewer@example.com' // Replace with your actual reviewer email for testing
+  const [reviewerId, setReviewerId] = useState(null)
   const [applications, setApplications] = useState([])
   const [selectedApplication, setSelectedApplication] = useState(null)
   const [reviewerComment, setReviewerComment] = useState('')
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('pending') // pending, approved, rejected, all
+  const [error, setError] = useState('')
+  const [fetching, setFetching] = useState(false)
 
-  // Mock applications data - in a real app, this would come from an API
-  const mockApplications = [
-    {
-      id: 1,
-      student_name: 'Anna Korhonen',
-      student_email: 'anna.korhonen@students.oamk.fi',
-      student_degree: 'Business Information Technology',
-      document_name: 'work_certificate_anna.pdf',
-      submitted_at: '2025-01-15 10:30:00',
-      status: 'pending',
-      ai_decision: 'ACCEPTED',
-      credits_calculated: 15,
-      training_type: 'professional',
-      working_hours: 600,
-      degree_relevance: 'high',
-      justification: 'Strong experience in software development and project management, directly relevant to the degree program.',
-      supporting_evidence: 'Documented experience with modern web technologies and agile methodologies.',
-      challenging_evidence: 'Some tasks were more generic IT support rather than specialized development work.',
-      student_feedback: null
-    },
-    {
-      id: 2,
-      student_name: 'Mikko Virtanen',
-      student_email: 'mikko.virtanen@students.oamk.fi',
-      student_degree: 'Mechanical Engineering',
-      document_name: 'employment_letter_mikko.pdf',
-      submitted_at: '2025-01-14 14:15:00',
-      status: 'pending',
-      ai_decision: 'REJECTED',
-      credits_calculated: 0,
-      training_type: 'general',
-      working_hours: 320,
-      degree_relevance: 'low',
-      justification: 'Work experience is primarily in customer service, not directly related to mechanical engineering.',
-      supporting_evidence: 'Good communication skills and teamwork experience.',
-      challenging_evidence: 'No technical engineering tasks or use of engineering principles.',
-      student_feedback: 'I worked closely with the technical team and helped with quality control processes. I also assisted in testing new equipment and documenting procedures.'
-    },
-    {
-      id: 3,
-      student_name: 'Sari Laine',
-      student_email: 'sari.laine@students.oamk.fi',
-      student_degree: 'Nursing',
-      document_name: 'certificate_sari.pdf',
-      submitted_at: '2025-01-13 09:45:00',
-      status: 'approved',
-      credits_calculated: 20,
-      training_type: 'professional',
-      working_hours: 800,
-      degree_relevance: 'high',
-      justification: 'Extensive healthcare experience directly applicable to nursing education.',
-      supporting_evidence: 'Direct patient care, medical procedures, and healthcare team collaboration.',
-      challenging_evidence: 'Some administrative tasks were less relevant to clinical nursing skills.',
-      reviewer_decision: 'approved',
-      reviewer_comment: 'Excellent healthcare background with strong clinical experience.',
-      reviewed_at: '2025-01-13 16:20:00'
-    },
-    {
-      id: 4,
-      student_name: 'Jari Mäkelä',
-      student_email: 'jari.makela@students.oamk.fi',
-      student_degree: 'Business Administration',
-      document_name: 'work_experience_jari.pdf',
-      submitted_at: '2025-01-12 11:00:00',
-      status: 'rejected',
-      credits_calculated: 5,
-      training_type: 'general',
-      working_hours: 200,
-      degree_relevance: 'medium',
-      justification: 'Limited business-related tasks and insufficient working hours.',
-      supporting_evidence: 'Some exposure to business operations and customer interaction.',
-      challenging_evidence: 'Most work was manual labor with minimal business decision-making.',
-      reviewer_decision: 'rejected',
-      reviewer_comment: 'Insufficient relevant business experience. Recommend more specialized business role.',
-      reviewed_at: '2025-01-12 15:30:00'
-    }
-  ]
-
+  // Fetch reviewer info and assigned applications
   useEffect(() => {
-    // In a real app, this would fetch from an API
-    setApplications(mockApplications)
-  }, [])
+    async function fetchReviewerAndApplications() {
+      setFetching(true)
+      setError('')
+      try {
+        // 1. Get reviewer by email
+        const reviewer = await getReviewerByEmail(reviewerEmail)
+        setReviewerId(reviewer.id)
+        // 2. Get applications assigned to reviewer
+        const apps = await getReviewerCertificates(reviewer.id)
+        setApplications(apps)
+      } catch (err) {
+        setError(err.message || 'Failed to load reviewer data')
+      } finally {
+        setFetching(false)
+      }
+    }
+    fetchReviewerAndApplications()
+  }, [reviewerEmail])
+
+  if (fetching) {
+    return <div className="text-center py-12 text-gray-500">Loading reviewer data...</div>
+  }
+  if (error) {
+    return <div className="text-center py-12 text-red-600">{error}</div>
+  }
 
   const filteredApplications = applications.filter(app => {
     if (filter === 'all') return true
@@ -159,56 +114,42 @@ function Reviewer() {
   }
 
   const handleApprove = async () => {
+    if (!selectedApplication) return
     setLoading(true)
+    setError('')
     try {
-      // In a real app, this would call an API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const updatedApplications = applications.map(app => 
-        app.id === selectedApplication.id 
-          ? { 
-              ...app, 
-              status: 'approved', 
-              reviewer_decision: 'approved',
-              reviewer_comment: reviewerComment,
-              reviewed_at: new Date().toISOString()
-            }
-          : app
-      )
-      
-      setApplications(updatedApplications)
+      await submitCertificateReview(selectedApplication.id, {
+        reviewer_comment: reviewerComment,
+        reviewer_decision: 'PASS'
+      })
+      // Refresh applications after review
+      const apps = await getReviewerCertificates(reviewerId)
+      setApplications(apps)
       setSelectedApplication(null)
       setReviewerComment('')
-    } catch (error) {
-      console.error('Error approving application:', error)
+    } catch (err) {
+      setError(err.message || 'Error approving application')
     } finally {
       setLoading(false)
     }
   }
 
   const handleReject = async () => {
+    if (!selectedApplication) return
     setLoading(true)
+    setError('')
     try {
-      // In a real app, this would call an API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const updatedApplications = applications.map(app => 
-        app.id === selectedApplication.id 
-          ? { 
-              ...app, 
-              status: 'rejected', 
-              reviewer_decision: 'rejected',
-              reviewer_comment: reviewerComment,
-              reviewed_at: new Date().toISOString()
-            }
-          : app
-      )
-      
-      setApplications(updatedApplications)
+      await submitCertificateReview(selectedApplication.id, {
+        reviewer_comment: reviewerComment,
+        reviewer_decision: 'FAIL'
+      })
+      // Refresh applications after review
+      const apps = await getReviewerCertificates(reviewerId)
+      setApplications(apps)
       setSelectedApplication(null)
       setReviewerComment('')
-    } catch (error) {
-      console.error('Error rejecting application:', error)
+    } catch (err) {
+      setError(err.message || 'Error rejecting application')
     } finally {
       setLoading(false)
     }
@@ -389,7 +330,17 @@ function Reviewer() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Document</label>
-              <p className="text-gray-800">{selectedApplication.document_name}</p>
+              <div className="flex items-center space-x-2">
+                <p className="text-gray-800">{selectedApplication.document_name}</p>
+                <button
+                  aria-label="Download Document"
+                  className="btn-secondary px-2 py-1 text-xs"
+                  disabled={loading}
+                  onClick={() => downloadAndSaveCertificate(selectedApplication.id, selectedApplication.document_name)}
+                >
+                  Download
+                </button>
+              </div>
             </div>
           </div>
           
@@ -549,7 +500,15 @@ function Reviewer() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {selectedApplication ? renderApplicationDetails() : renderApplicationsList()}
+      {fetching ? (
+        <div className="text-center py-12 text-gray-500">Loading reviewer data...</div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">{error}</div>
+      ) : selectedApplication ? (
+        renderApplicationDetails()
+      ) : (
+        renderApplicationsList()
+      )}
     </div>
   )
 }

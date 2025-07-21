@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import './App.css'
 import Student from './components/Student.jsx'
-import Reviewer from './components/Reviewer.jsx'
+import Reviewer from './pages/Reviewer.jsx'
 import apiService from './api.js'
 import { useState, useEffect } from 'react'
 
