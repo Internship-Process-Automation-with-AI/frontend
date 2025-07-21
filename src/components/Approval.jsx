@@ -152,6 +152,12 @@ const Approval = ({
                     <div className="flex-1">
                       <div className="font-semibold text-gray-800">{reviewerName}</div>
                       <div className="text-sm text-gray-600">{reviewer.email}</div>
+                      {reviewer.position && (
+                        <div className="text-sm text-gray-700">{reviewer.position}</div>
+                      )}
+                      {reviewer.department && (
+                        <div className="text-xs text-gray-500">{reviewer.department}</div>
+                      )}
                     </div>
                   </label>
                 )
