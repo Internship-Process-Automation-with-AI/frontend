@@ -142,7 +142,7 @@ const UploadCertificate = ({
           {/* Action Buttons */}
           <div className="flex justify-between mt-8">
             <button
-              onClick={onBackToDashboard}
+              onClick={() => onBackToDashboard('dashboard')}
               className="btn-secondary"
             >
               Back to Dashboard

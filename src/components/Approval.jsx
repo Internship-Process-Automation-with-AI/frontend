@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import apiService from '../api.js'
 
 const Approval = ({ 
   results, 
@@ -9,15 +10,25 @@ const Approval = ({
   const [isSending, setIsSending] = useState(false)
   const [isSent, setIsSent] = useState(false)
   const [error, setError] = useState(null)
+  const [reviewers, setReviewers] = useState([])
+  const [isLoadingReviewers, setIsLoadingReviewers] = useState(true)
 
-  // Mock reviewers data - in a real app, this would come from an API
-  const reviewers = [
-    { id: '1', name: 'Dr. Anna Johnson', role: 'Academic Advisor', department: 'Health Sciences' },
-    { id: '2', name: 'Prof. Mikael Andersson', role: 'Program Director', department: 'Nursing' },
-    { id: '3', name: 'Dr. Sarah Chen', role: 'Faculty Coordinator', department: 'Midwifery' },
-    { id: '4', name: 'Prof. Erik Lindholm', role: 'Department Head', department: 'Health Care' },
-    { id: '5', name: 'Dr. Maria Rodriguez', role: 'Academic Coordinator', department: 'Student Services' }
-  ]
+  // Fetch reviewers from API
+  useEffect(() => {
+    const fetchReviewers = async () => {
+      try {
+        const reviewersData = await apiService.getReviewers()
+        setReviewers(reviewersData)
+      } catch (err) {
+        console.error('Error fetching reviewers:', err)
+        setError('Failed to load reviewers. Please try again.')
+      } finally {
+        setIsLoadingReviewers(false)
+      }
+    }
+
+    fetchReviewers()
+  }, [])
 
   const handleSendApproval = async () => {
     if (!selectedReviewer) {
@@ -29,21 +40,7 @@ const Approval = ({
       setIsSending(true)
       setError(null)
       
-      // Mock API call - replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate API delay
-      
-      // Here you would make the actual API call to send for approval
-      // const response = await fetch(`http://localhost:8000/certificate/${certificateId}/send-for-approval`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({
-      //     reviewer_id: selectedReviewer,
-      //     certificate_id: certificateId
-      //   })
-      // })
-      
+      await apiService.sendForApproval(certificateId, selectedReviewer)
       setIsSent(true)
     } catch (err) {
       console.error('Approval submission error:', err)
@@ -64,7 +61,7 @@ const Approval = ({
               Your application has been successfully sent for approval. The selected reviewer will be notified and will review your application shortly.
             </p>
             <button
-              onClick={onBackToDashboard}
+              onClick={() => onBackToDashboard('dashboard')}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Back to Dashboard
@@ -119,38 +116,54 @@ const Approval = ({
             </div>
           )}
 
-          <div className="space-y-3">
-            {reviewers.map((reviewer) => (
-              <label
-                key={reviewer.id}
-                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedReviewer === reviewer.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="reviewer"
-                  value={reviewer.id}
-                  checked={selectedReviewer === reviewer.id}
-                  onChange={(e) => setSelectedReviewer(e.target.value)}
-                  className="mr-3 text-blue-600 focus:ring-blue-500"
-                />
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-800">{reviewer.name}</div>
-                  <div className="text-sm text-gray-600">{reviewer.role}</div>
-                  <div className="text-xs text-gray-500">{reviewer.department}</div>
-                </div>
-              </label>
-            ))}
-          </div>
+          {isLoadingReviewers ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">Loading reviewers...</p>
+            </div>
+          ) : reviewers.length === 0 ? (
+            <div className="text-center py-8 text-gray-600">
+              No reviewers available at the moment.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reviewers.map((reviewer) => {
+                const reviewerName = reviewer.first_name && reviewer.last_name 
+                  ? `${reviewer.first_name} ${reviewer.last_name}`
+                  : reviewer.first_name || reviewer.last_name || reviewer.email.split('@')[0]
+                
+                return (
+                  <label
+                    key={reviewer.reviewer_id}
+                    className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                      selectedReviewer === reviewer.reviewer_id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="reviewer"
+                      value={reviewer.reviewer_id}
+                      checked={selectedReviewer === reviewer.reviewer_id}
+                      onChange={(e) => setSelectedReviewer(e.target.value)}
+                      className="mr-3 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-800">{reviewerName}</div>
+                      <div className="text-sm text-gray-600">{reviewer.email}</div>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">
           <button
-            onClick={onBackToDashboard}
+            onClick={() => onBackToDashboard('dashboard')}
             className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
             Back to Dashboard

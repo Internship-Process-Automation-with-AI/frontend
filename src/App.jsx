@@ -221,6 +221,24 @@ function App() {
     setCurrentView('request-review')
   }
 
+  const handleSubmitAppeal = (application) => {
+    // Set the results data and navigate to appeal page
+    setResults({
+      decision: application.ai_decision || 'REJECTED',
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('request-review')
+  }
+
   // Submit new application handler
   const handleSubmitNewApplication = () => {
     // Clear form data and go back to upload
@@ -254,14 +272,27 @@ function App() {
     setCurrentView('applications')
   }
 
-  const handleBackToDashboard = () => {
-    setCurrentView('dashboard')
+  const handleBackToDashboard = async (targetView = 'dashboard') => {
+    setCurrentView(targetView)
     setFormData({ document: null, trainingType: '' })
     setError(null)
     setResults(null)
     setUserFeedback('')
     setCertificateId(null)
     setSelectedApplication(null)
+    
+    // Refresh applications when going to dashboard
+    if (targetView === 'dashboard') {
+      try {
+        const applicationsResponse = await fetch(`http://localhost:8000/student/${encodeURIComponent(studentEmail)}/applications`)
+        if (applicationsResponse.ok) {
+          const applicationsData = await applicationsResponse.json()
+          setApplications(applicationsData.applications || [])
+        }
+      } catch (err) {
+        console.warn('Failed to refresh applications:', err)
+      }
+    }
   }
 
   const handleViewApplicationDetails = (application) => {
@@ -370,6 +401,24 @@ function App() {
             onBackToDashboard={handleBackToDashboard}
             onDeleteApplication={handleDeleteApplication}
             onViewApplicationDetails={handleViewApplicationDetails}
+            onContinueProcessing={(application) => {
+              // Set the results data and navigate to approval page
+              setResults({
+                decision: application.ai_decision || 'ACCEPTED',
+                credits: application.credits || 0,
+                filename: application.filename,
+                student_degree: studentData?.degree,
+                training_hours: application.total_working_hours,
+                requested_training_type: application.training_type,
+                degree_relevance: application.degree_relevance,
+                supporting_evidence: application.supporting_evidence,
+                challenging_evidence: application.challenging_evidence,
+                justification: application.justification
+              })
+              setCertificateId(application.certificate_id)
+              setCurrentView('approval')
+            }}
+            onSubmitAppeal={handleSubmitAppeal}
           />
         )
       

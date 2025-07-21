@@ -192,6 +192,157 @@ class ApiService {
       throw error;
     }
   }
+
+  // Download certificate file
+  async downloadCertificate(certificateId) {
+    const requestId = requestInterceptor.generateRequestId();
+    const request = {
+      id: requestId,
+      type: 'download_certificate',
+      progress: 0,
+      startTime: Date.now()
+    };
+    
+    requestInterceptor.addRequest(request);
+    
+    try {
+      requestInterceptor.updateRequest(requestId, { progress: 25 });
+      console.log('Making download request to:', `${this.baseUrl}/certificate/${certificateId}`);
+      const response = await fetch(`${this.baseUrl}/certificate/${certificateId}`);
+      requestInterceptor.updateRequest(requestId, { progress: 75 });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Download response error:', response.status, errorText);
+        throw new Error(`Download failed: ${response.status} - ${errorText}`);
+      }
+      
+      const blob = await response.blob();
+      requestInterceptor.updateRequest(requestId, { progress: 100 });
+      requestInterceptor.removeRequest(requestId);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.headers.get('content-disposition')?.split('filename=')[1] || 'certificate';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return blob;
+    } catch (error) {
+      requestInterceptor.removeRequest(requestId);
+      console.error('Error downloading certificate:', error);
+      throw error;
+    }
+  }
+
+  // Preview certificate file
+  async previewCertificate(certificateId) {
+    const requestId = requestInterceptor.generateRequestId();
+    const request = {
+      id: requestId,
+      type: 'preview_certificate',
+      progress: 0,
+      startTime: Date.now()
+    };
+    
+    requestInterceptor.addRequest(request);
+    
+    try {
+      requestInterceptor.updateRequest(requestId, { progress: 25 });
+      console.log('Making preview request to:', `${this.baseUrl}/certificate/${certificateId}/preview`);
+      
+      // For preview, we'll return the direct URL instead of fetching the blob
+      // This allows the iframe to load the content directly
+      const previewUrl = `${this.baseUrl}/certificate/${certificateId}/preview`;
+      
+      requestInterceptor.updateRequest(requestId, { progress: 100 });
+      requestInterceptor.removeRequest(requestId);
+      
+      return previewUrl;
+    } catch (error) {
+      requestInterceptor.removeRequest(requestId);
+      console.error('Error previewing certificate:', error);
+      throw error;
+    }
+  }
+
+  // Get reviewers
+  async getReviewers() {
+    const requestId = requestInterceptor.generateRequestId();
+    const request = {
+      id: requestId,
+      type: 'fetch_reviewers',
+      progress: 0,
+      startTime: Date.now()
+    };
+    
+    requestInterceptor.addRequest(request);
+    
+    try {
+      requestInterceptor.updateRequest(requestId, { progress: 25 });
+      const response = await fetch(`${this.baseUrl}/reviewers`);
+      requestInterceptor.updateRequest(requestId, { progress: 75 });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch reviewers: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      requestInterceptor.updateRequest(requestId, { progress: 100 });
+      requestInterceptor.removeRequest(requestId);
+      return data.reviewers || [];
+    } catch (error) {
+      requestInterceptor.removeRequest(requestId);
+      console.error('Error fetching reviewers:', error);
+      throw error;
+    }
+  }
+
+  // Send for approval
+  async sendForApproval(certificateId, reviewerId) {
+    const requestId = requestInterceptor.generateRequestId();
+    const request = {
+      id: requestId,
+      type: 'send_for_approval',
+      progress: 0,
+      startTime: Date.now()
+    };
+    
+    requestInterceptor.addRequest(request);
+    
+    try {
+      requestInterceptor.updateRequest(requestId, { progress: 25 });
+      const response = await fetch(`${this.baseUrl}/certificate/${certificateId}/send-for-approval`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reviewer_id: reviewerId
+        })
+      });
+      
+      requestInterceptor.updateRequest(requestId, { progress: 75 });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to send for approval: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      requestInterceptor.updateRequest(requestId, { progress: 100 });
+      requestInterceptor.removeRequest(requestId);
+      return result;
+    } catch (error) {
+      requestInterceptor.removeRequest(requestId);
+      console.error('Error sending for approval:', error);
+      throw error;
+    }
+  }
 }
 
 // Create and export a singleton instance

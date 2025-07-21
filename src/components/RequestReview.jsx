@@ -61,7 +61,13 @@ const RequestReview = ({
               Your appeal has been successfully submitted. A reviewer will review your case and you will be notified of the outcome.
             </p>
             <button
-              onClick={onBackToDashboard}
+              onClick={() => {
+                // Refresh applications before going back to dashboard
+                if (onRefreshApplications) {
+                  onRefreshApplications()
+                }
+                onBackToDashboard('dashboard')
+              }}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Back to Dashboard
@@ -148,7 +154,7 @@ const RequestReview = ({
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">
           <button
-            onClick={onBackToDashboard}
+            onClick={() => onBackToDashboard('dashboard')}
             className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
             Cancel

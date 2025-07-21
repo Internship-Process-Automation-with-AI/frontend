@@ -28,7 +28,7 @@ const Results = ({
         <div className="text-center">
           <div className="text-gray-500 text-lg">No results available</div>
           <button
-            onClick={onBackToDashboard}
+            onClick={() => onBackToDashboard('dashboard')}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Back to Dashboard
@@ -55,7 +55,7 @@ const Results = ({
               <span className={`px-8 py-3 rounded-full text-xl font-bold ${getDecisionColor(results.decision)}`}>
                 {results.decision}
               </span>
-              <span className="text-3xl font-bold text-gray-600">{results.credits || 0}</span>
+              <span className="text-3xl font-bold text-gray-600">{results.credits || 0} ECTS</span>
             </div>
           </div>
         </div>
@@ -77,7 +77,7 @@ const Results = ({
           <div className="flex items-center mb-4">
             <h3 className="text-lg font-bold text-gray-800">Evaluation Results</h3>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Left Column - Key Metrics */}
             <div className="space-y-4">
               <div>
@@ -116,22 +116,22 @@ const Results = ({
               </div>
             </div>
           </div>
-        </div>
-
-
-        
-        {/* Justification */}
-        <div className="mb-6">
-          <h4 className="font-semibold text-gray-800 mb-2">Justification</h4>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {results.justification || 'No justification available.'}
-          </p>
+          
+          {/* Justification Section */}
+          <div className="mt-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-800 mb-2">Justification</h4>
+              <p className="text-blue-700 text-sm leading-relaxed">
+                {results.justification || 'No justification available.'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">
           <button
-            onClick={onBackToDashboard}
+            onClick={() => onBackToDashboard('dashboard')}
             className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
             Back to Dashboard
