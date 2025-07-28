@@ -168,6 +168,9 @@ function App() {
           summary: llmResults.error || 'LLM processing failed. Please check your configuration.'
         })
       } else {
+        // Get extraction results for duration and institution
+        const extractionResults = llmResults.extraction_results?.results || {}
+        
         setResults({
           success: llmResults.success,
           decision: decision.ai_decision,
@@ -176,8 +179,8 @@ function App() {
           training_type: formData.trainingType,
           requested_training_type: evaluationResults.requested_training_type || 'Not specified',
           degree_relevance: evaluationResults.degree_relevance || 'Not specified',
-          duration: evaluationResults.duration || 'Not specified',
-          institution: evaluationResults.institution || 'Not specified',
+          duration: extractionResults.total_employment_period || 'Not specified',
+          institution: extractionResults.employer || 'Not specified',
           summary: evaluationResults.justification || decision.ai_justification || 'Processing completed successfully.',
           summary_justification: evaluationResults.summary_justification || '',
           supporting_evidence: evaluationResults.supporting_evidence || '',
