@@ -5,23 +5,7 @@ import RequestReview from '../src/components/RequestReview';
 // Mock fetch globally
 global.fetch = jest.fn();
 
-// Mock console.error to avoid noise in tests
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args) => {
-    if (
-      typeof args[0] === 'string' &&
-      args[0].includes('Warning: An update to RequestReview inside a test was not wrapped in act')
-    ) {
-      return;
-    }
-    originalError.call(console, ...args);
-  };
-});
-
-afterAll(() => {
-  console.error = originalError;
-});
+// Console error mocking is handled globally in setupTests.js
 
 describe('RequestReview', () => {
   const defaultProps = {

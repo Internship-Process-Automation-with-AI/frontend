@@ -48,4 +48,43 @@ Object.defineProperty(navigator, 'clipboard', {
     writeText: jest.fn(),
   },
   writable: true,
+});
+
+// Mock console.error and console.warn to suppress expected errors in tests
+const originalError = console.error;
+const originalWarn = console.warn;
+
+beforeAll(() => {
+  console.error = (...args) => {
+    // Suppress specific error messages that are expected in tests
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('Warning: An update to') ||
+       args[0].includes('act(...)') ||
+       args[0].includes('Error fetching reviewers') ||
+       args[0].includes('Approval submission error') ||
+       args[0].includes('Appeal submission error') ||
+       args[0].includes('Delete error'))
+    ) {
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+
+  console.warn = (...args) => {
+    // Suppress specific warning messages that are expected in tests
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('Failed to fetch applications') ||
+       args[0].includes('Failed to refresh applications'))
+    ) {
+      return;
+    }
+    originalWarn.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+  console.warn = originalWarn;
 }); 

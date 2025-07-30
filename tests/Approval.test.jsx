@@ -10,23 +10,7 @@ jest.mock('../src/api.js', () => ({
 
 import apiService from '../src/api.js';
 
-// Mock console.error to avoid noise in tests
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args) => {
-    if (
-      typeof args[0] === 'string' &&
-      args[0].includes('Warning: An update to Approval inside a test was not wrapped in act')
-    ) {
-      return;
-    }
-    originalError.call(console, ...args);
-  };
-});
-
-afterAll(() => {
-  console.error = originalError;
-});
+// Console error mocking is handled globally in setupTests.js
 
 describe('Approval', () => {
   const defaultProps = {
