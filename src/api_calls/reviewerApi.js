@@ -246,3 +246,50 @@ export async function downloadAndSaveCertificate (certificateId, filename) {
     throw new Error(`Failed to download certificate: ${error.message}`)
   }
 }
+
+/**
+ * Get detailed certificate information for review
+ *
+ * @param {string} certificateId - Certificate's UUID
+ * @returns {Promise<Object>} Detailed application information
+ * @throws {Error} If request fails
+ */
+export async function getCertificateDetails (certificateId) {
+  try {
+    const response = await fetch(
+      buildUrl(API_ENDPOINTS.CERTIFICATE_DETAILS(certificateId)),
+      {
+        method: 'GET',
+        headers: DEFAULT_HEADERS,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT)
+      }
+    )
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Certificate not found')
+      } else if (response.status === 400) {
+        throw new Error('Invalid certificate ID')
+      } else {
+        throw new Error(
+          `HTTP ${response.status}: ${ERROR_MESSAGES.SERVER_ERROR}`
+        )
+      }
+    }
+
+    const data = await response.json()
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to fetch certificate details')
+    }
+
+    return data.application
+  } catch (error) {
+    if (error.name === 'TimeoutError') {
+      throw new Error(ERROR_MESSAGES.TIMEOUT_ERROR)
+    } else if (error.name === 'TypeError') {
+      throw new Error(ERROR_MESSAGES.NETWORK_ERROR)
+    }
+    throw error
+  }
+}

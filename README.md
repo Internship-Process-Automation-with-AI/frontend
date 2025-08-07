@@ -1,12 +1,59 @@
-# React + Vite
+# OAMK Academic Credit Evaluation Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🚀 Quick Start
 
-Currently, two official plugins are available:
+1. **Install dependencies**
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. **Run in development**
+   ```bash
+   npm run dev
+   # App: http://localhost:5173
+   ```
+3. **Build for production**
+   ```bash
+   npm run build
+   npm run preview
+   ```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## 📝 What is this?
+A modern React web app for OAMK students and reviewers to upload, process, and review work certificates for ECTS credit using an AI-powered backend.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## ✨ Key Features
+- Drag-and-drop certificate upload (PDF, DOCX, images)
+- Training type selection (general/professional)
+- Real-time AI processing with progress indicators
+- Application dashboard with status, credits, and justifications
+- Document preview and download
+- Reviewer selection (with position & department)
+- Appeal and feedback workflow
+- Responsive, user-friendly UI
+
+---
+
+## 🗂️ Main UI Flow
+1. **Enter student email**
+2. **Upload certificate** and select training type (degree is auto-fetched)
+3. **AI processes document** and shows results
+4. **Send for approval** (select reviewer)
+5. **Track application status** (accepted, rejected, pending, appeal)
+6. **Reviewers** can approve/reject/leave comments
+
+---
+
+## 🔗 Backend/API
+- Requires the backend FastAPI server running (see `../backend/README.md`)
+- Default API URL: `http://localhost:8000`
+- To change API URL, edit `frontend/src/api.js`
+
+---
+
+## 📄 More
+- For backend setup, see `../backend/README.md`
+- For API docs, visit `http://localhost:8000/docs` when backend is running

@@ -102,13 +102,13 @@ function Student() {
   const { isProcessing: apiIsProcessing, progress } = useDocumentProcessing()
 
   // Mock approvers list - you can replace this with API call
-  const approvers = [
-    { id: '1', name: 'Dr. Anna Mäkinen', role: 'Head of Business Administration' },
-    { id: '2', name: 'Prof. Jussi Virtanen', role: 'Head of Information Technology' },
-    { id: '3', name: 'Dr. Maria Koskinen', role: 'Head of Engineering' },
-    { id: '4', name: 'Prof. Pekka Laaksonen', role: 'Head of Nursing' },
-    { id: '5', name: 'Dr. Liisa Järvinen', role: 'Head of Social Services' },
-  ]
+  // const approvers = [
+  //   { id: '1', name: 'Dr. Anna Mäkinen', role: 'Head of Business Administration' },
+  //   { id: '2', name: 'Prof. Jussi Virtanen', role: 'Head of Information Technology' },
+  //   { id: '3', name: 'Dr. Maria Koskinen', role: 'Head of Engineering' },
+  //   { id: '4', name: 'Prof. Pekka Laaksonen', role: 'Head of Nursing' },
+  //   { id: '5', name: 'Dr. Liisa Järvinen', role: 'Head of Social Services' },
+  // ]
 
   // Load degree programs from API on component mount
   useEffect(() => {

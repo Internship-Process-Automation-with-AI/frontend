@@ -11,6 +11,7 @@ export * from './config.js'
 export {
   getReviewerByEmail,
   getReviewerCertificates,
+  getCertificateDetails,
   downloadCertificate,
   submitCertificateReview,
   triggerFileDownload,
