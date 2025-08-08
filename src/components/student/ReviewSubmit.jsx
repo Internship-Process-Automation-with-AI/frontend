@@ -1,5 +1,5 @@
-import { FileTextIcon } from './Icons.jsx'
-import Header from './Header.jsx'
+import { FileTextIcon } from '../common/Icons.jsx'
+import Header from '../common/Header.jsx'
 import StepIndicator from './StepIndicator.jsx'
 
 const ReviewSubmit = ({ 

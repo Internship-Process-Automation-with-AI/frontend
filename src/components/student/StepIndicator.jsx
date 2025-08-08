@@ -1,4 +1,4 @@
-import { CheckCircleIcon } from './Icons.jsx'
+import { CheckCircleIcon } from '../common/Icons.jsx'
 
 const StepIndicator = ({ currentStep, totalSteps = 3 }) => {
   return (

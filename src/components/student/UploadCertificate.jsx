@@ -1,5 +1,5 @@
-import { UploadIcon, FileTextIcon, XIcon, RefreshCwIcon } from './Icons.jsx'
-import Header from './Header.jsx'
+import { UploadIcon, FileTextIcon, XIcon, RefreshCwIcon } from '../common/Icons.jsx'
+import Header from '../common/Header.jsx'
 import StepIndicator from './StepIndicator.jsx'
 
 const UploadCertificate = ({ 

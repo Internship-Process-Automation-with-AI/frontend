@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import apiService from '../api.js'
+import { getReviewers, sendForApproval } from '../../api_calls/studentAPI.js'
 
 const Approval = ({ 
   results, 
@@ -13,11 +13,27 @@ const Approval = ({
   const [reviewers, setReviewers] = useState([])
   const [isLoadingReviewers, setIsLoadingReviewers] = useState(true)
 
+  // Helper function to safely render values
+  const safeRender = (value, fallback = 'N/A') => {
+    if (value === null || value === undefined) return fallback
+    if (typeof value === 'object') {
+      return JSON.stringify(value)
+    }
+    return String(value)
+  }
+
+  // Extract values from the results object safely
+  const decisionData = results?.decision || {}
+  const decision = decisionData.ai_decision || results?.ai_decision || 'UNKNOWN'
+  const credits = decisionData.credits_awarded || results?.credits || 0
+  const filename = results?.filename || 'Document'
+  const trainingType = results?.requested_training_type || results?.training_type || 'Not specified'
+
   // Fetch reviewers from API
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
-        const reviewersData = await apiService.getReviewers()
+        const reviewersData = await getReviewers()
         setReviewers(reviewersData)
       } catch (err) {
         console.error('Error fetching reviewers:', err)
@@ -36,15 +52,22 @@ const Approval = ({
       return
     }
 
+    if (!certificateId) {
+      setError('No certificate ID available. Please go back and try again.')
+      return
+    }
+
     try {
       setIsSending(true)
       setError(null)
       
-      await apiService.sendForApproval(certificateId, selectedReviewer)
+      console.log('Sending for approval:', { certificateId, selectedReviewer })
+      
+      await sendForApproval(certificateId, selectedReviewer)
       setIsSent(true)
     } catch (err) {
       console.error('Approval submission error:', err)
-      setError('Failed to send for approval. Please try again.')
+      setError(err.message || 'Failed to send for approval. Please try again.')
     } finally {
       setIsSending(false)
     }
@@ -87,21 +110,21 @@ const Approval = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-600 mb-1">Document</p>
-              <p className="font-semibold text-gray-800">{results.filename || 'Document'}</p>
+              <p className="font-semibold text-gray-800">{filename}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Decision</p>
-              <p className={`font-semibold ${results.decision === 'ACCEPTED' ? 'text-green-600' : 'text-red-600'}`}>
-                {results.decision}
+              <p className={`font-semibold ${decision === 'ACCEPTED' ? 'text-green-600' : 'text-red-600'}`}>
+                {decision}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Credits</p>
-              <p className="font-semibold text-gray-800">{results.credits || 0} ECTS</p>
+              <p className="font-semibold text-gray-800">{credits} ECTS</p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Training Type</p>
-              <p className="font-semibold text-gray-800">{results.requested_training_type}</p>
+              <p className="font-semibold text-gray-800">{trainingType}</p>
             </div>
           </div>
         </div>

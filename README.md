@@ -50,10 +50,6 @@ A modern React web app for OAMK students and reviewers to upload, process, and r
 ## 🔗 Backend/API
 - Requires the backend FastAPI server running (see `../backend/README.md`)
 - Default API URL: `http://localhost:8000`
-- To change API URL, edit `frontend/src/api.js`
+- To change API URL, edit `.env`
 
----
 
-## 📄 More
-- For backend setup, see `../backend/README.md`
-- For API docs, visit `http://localhost:8000/docs` when backend is running
