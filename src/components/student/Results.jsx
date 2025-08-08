@@ -84,14 +84,38 @@ const Results = ({
   const apiStudentData = results.student || {}
   const llmData = results.llm_results || {}
 
-  // Extract values from the correct nested structure
-  const decision = decisionData.ai_decision || 'UNKNOWN'
-  const credits = decisionData.credits_awarded || 0
-  const trainingHours = decisionData.total_working_hours || 0
-  const degreeRelevance = decisionData.degree_relevance || 'Not specified'
-  const supportingEvidence = decisionData.supporting_evidence || 'No supporting evidence available.'
-  const challengingEvidence = decisionData.challenging_evidence || 'No challenging evidence available.'
-  const justification = decisionData.ai_justification || 'No justification available.'
+  // New: fallback helpers from llm_results
+  const llmEval = llmData?.evaluation_results?.results || {}
+  const llmExtract = llmData?.extraction_results?.results || {}
+
+  // Extract values with fallback to LLM outputs when decisionData misses fields
+  const decision = (decisionData.ai_decision 
+    || llmEval.decision 
+    || 'UNKNOWN')
+
+  const credits = (typeof decisionData.credits_awarded === 'number' ? decisionData.credits_awarded
+    : (typeof llmEval.credits_qualified === 'number' ? llmEval.credits_qualified
+      : (typeof llmEval.credits_calculated === 'number' ? llmEval.credits_calculated : 0)))
+
+  const trainingHours = (typeof decisionData.total_working_hours === 'number' ? decisionData.total_working_hours
+    : (typeof llmEval.total_working_hours === 'number' ? llmEval.total_working_hours
+      : (typeof llmEval.training_hours === 'number' ? llmEval.training_hours : 0)))
+
+  const degreeRelevance = (decisionData.degree_relevance
+    || llmEval.degree_relevance
+    || 'Not specified')
+
+  const supportingEvidence = (decisionData.supporting_evidence
+    || llmEval.supporting_evidence
+    || 'No supporting evidence available.')
+
+  const challengingEvidence = (decisionData.challenging_evidence
+    || llmEval.challenging_evidence
+    || 'No challenging evidence available.')
+
+  const justification = (decisionData.ai_justification
+    || llmEval.justification
+    || 'No justification available.')
   
   // Get document filename from form data (original file) or API response
   const filename = formData?.document?.name || 
@@ -103,6 +127,7 @@ const Results = ({
   let requestedTrainingType = formData?.trainingType || 
                              certificateData.training_type || 
                              results.requested_training_type || 
+                             llmEval.requested_training_type ||
                              'Not specified'
   
   // Format training type for better display
@@ -127,7 +152,7 @@ const Results = ({
   })
   
   console.log('Source data:', {
-    formData, studentData, decisionData, certificateData
+    formData, studentData, decisionData, certificateData, llmEval
   })
 
   // Ensure decision is a string, not an object

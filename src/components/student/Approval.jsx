@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import apiService from '../../api.js'
+import { getReviewers, sendForApproval } from '../../api_calls/studentAPI.js'
 
 const Approval = ({ 
   results, 
@@ -33,7 +33,7 @@ const Approval = ({
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
-        const reviewersData = await apiService.getReviewers()
+        const reviewersData = await getReviewers()
         setReviewers(reviewersData)
       } catch (err) {
         console.error('Error fetching reviewers:', err)
@@ -63,7 +63,7 @@ const Approval = ({
       
       console.log('Sending for approval:', { certificateId, selectedReviewer })
       
-      await apiService.sendForApproval(certificateId, selectedReviewer)
+      await sendForApproval(certificateId, selectedReviewer)
       setIsSent(true)
     } catch (err) {
       console.error('Approval submission error:', err)

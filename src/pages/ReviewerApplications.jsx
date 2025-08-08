@@ -91,11 +91,11 @@ function ReviewerApplications() {
   }, [certificateId, reviewerId, navigate, fetchApplicationDetails])
 
   const handleSubmitReview = async () => {
-    if (!reviewDecision || !reviewComment.trim()) {
+    if (!reviewDecision) {
       setModalConfig({
         type: 'error',
         title: 'Missing Information',
-        message: 'Please provide both a decision and comment'
+        message: 'Please provide a decision'
       })
       setShowModal(true)
       return
@@ -106,7 +106,7 @@ function ReviewerApplications() {
       try {
       await submitCertificateReview(certificateId, {
         reviewer_decision: reviewDecision,
-        reviewer_comment: reviewComment.trim()
+        reviewer_comment: reviewComment.trim() || null
       })
       
       // Refresh application details
@@ -129,6 +129,8 @@ function ReviewerApplications() {
       setSubmitting(false)
     }
   }
+
+
 
   const handleDownload = async () => {
     try {
@@ -191,8 +193,17 @@ function ReviewerApplications() {
   }
 
   // Loading states
-  if (fetchingDetails || fetchingReviewer) {
+  if (fetchingReviewer) {
     return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <Header reviewerData={reviewer} onLogout={handleLogout} />
+        <div className="text-center py-12 text-gray-500">Loading reviewer data...</div>
+      </div>
+    )
+  }
+
+  if (fetchingDetails || !application) {
+  return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <Header reviewerData={reviewer} onLogout={handleLogout} />
         <div className="text-center py-12 text-gray-500">Loading application details...</div>
@@ -200,19 +211,7 @@ function ReviewerApplications() {
     )
   }
 
-  // Error state
-  if (error && !application) {
   return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <Header reviewerData={reviewer} onLogout={handleLogout} />
-        <div className="text-center py-12 text-red-600">{error}</div>
-      </div>
-    )
-  }
-
-  // Individual application review view
-  if (application) {
-    return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <Header reviewerData={reviewer} onLogout={handleLogout} />
         <MessageModal 
@@ -223,6 +222,9 @@ function ReviewerApplications() {
           message={modalConfig.message}
         />
         <div className="max-w-4xl mx-auto px-4 py-8">
+
+        {/* Applications Section */}
+        <div className="card p-6">
           {/* Navigation */}
           <div className="flex items-center space-x-4 mb-6">
             <button
@@ -310,21 +312,71 @@ function ReviewerApplications() {
                 </div>
               </div>
 
+              {/* Credits Awarded */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Credits Awarded</label>
+                  <p className={`font-semibold mt-1 text-lg ${
+                    application.decision.credits_awarded > 0 ? 'text-green-600' : 'text-gray-600'
+                  }`}>
+                    {application.decision.credits_awarded} ECTS
+                  </p>
+                </div>
+
+                {/* Total Working Hours */}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Total Working Hours</label>
+                  <p className="text-gray-800 font-medium mt-1">
+                    {application.decision.total_working_hours 
+                      ? `${application.decision.total_working_hours} hours`
+                      : 'Not available'
+                    }
+                  </p>
+                </div>
+
+                {/* Training Duration */}
+                {application.decision.training_duration && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Training Duration</label>
+                    <p className="text-gray-800 font-medium mt-1">{application.decision.training_duration}</p>
+                  </div>
+                )}
+
+                {/* Training Institution */}
+                {application.decision.training_institution && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Training Institution</label>
+                    <p className="text-gray-800 font-medium mt-1">{application.decision.training_institution}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Degree Relevance */}
+              {application.decision.degree_relevance && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Degree Relevance</label>
+                    <p className="text-gray-800 font-medium mt-1">{application.decision.degree_relevance}</p>
+                </div>
+              )}
+
               {/* Credit Calculation */}
-              {application.certificate.total_working_hours && (
+              {/* {application.decision.total_working_hours && (
                 <div>
                   <label className="text-sm font-medium text-gray-600">Credit Calculation</label>
                   <div className="bg-gray-50 p-3 rounded-lg mt-1 space-y-1">
                     <p className="text-gray-800">
-                      Total Working Hours: {application.certificate.total_working_hours} hours
+                      Total Working Hours: {application.decision.total_working_hours} hours
                     </p>
                     <p className="text-gray-800">
-                      Calculated Credits: {Math.floor(application.certificate.total_working_hours / 27)} ECTS
+                      Calculated Credits: {Math.floor(application.decision.total_working_hours / 27)} ECTS
                       <span className="text-gray-500 text-sm ml-2">(1 ECTS = 27 hours)</span>
+                    </p>
+                    <p className="text-gray-700 text-sm">
+                      AI Awarded: {application.decision.credits_awarded || 0} ECTS
                     </p>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* AI Justification */}
               {application.decision.ai_justification && (
@@ -336,6 +388,26 @@ function ReviewerApplications() {
                 </div>
               )}
 
+              {/* Supporting and Challenging Evidence - Always show */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Supporting Evidence</label>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-1">
+                    <p className="text-green-800">
+                      {application.decision.supporting_evidence || 'No supporting evidence available.'}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Challenging Evidence</label>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-1">
+                    <p className="text-red-800">
+                      {application.decision.challenging_evidence || 'No challenging evidence available.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Recommendation for Rejected Cases */}
               {application.decision.ai_decision === 'REJECTED' && application.decision.recommendation && (
                 <div>
@@ -343,7 +415,7 @@ function ReviewerApplications() {
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-1">
                     <div className="flex items-start space-x-2">
                       <AlertCircleIcon className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div>
+                      <div>
                         <p className="text-orange-800 font-medium mb-1">Suggested Actions:</p>
                         <p className="text-orange-700">{application.decision.recommendation}</p>
                       </div>
@@ -351,30 +423,34 @@ function ReviewerApplications() {
                   </div>
                 </div>
               )}
-
-              {/* Supporting and Challenging Evidence */}
-              {(application.decision.supporting_evidence || application.decision.challenging_evidence) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {application.decision.supporting_evidence && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Supporting Evidence</label>
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-1">
-                        <p className="text-green-800">{application.decision.supporting_evidence}</p>
-                      </div>
-                    </div>
-                  )}
-                  {application.decision.challenging_evidence && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Challenging Evidence</label>
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-1">
-                        <p className="text-red-800">{application.decision.challenging_evidence}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Student Comment Section */}
+          {application.decision.student_comment && (
+            <div className="card p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">Student Comment</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Comment</label>
+                  <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-800 whitespace-pre-wrap">{application.decision.student_comment}</p>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircleIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-yellow-800 font-medium">Student Request</p>
+                      <p className="text-yellow-700 text-sm">
+                        The student has submitted a comment regarding their application and requested a review. Please consider their feedback when making your decision.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Review Form */}
           <div className="card p-6">
@@ -434,7 +510,7 @@ function ReviewerApplications() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Comment *
+                    Comment
                   </label>
                   <textarea
                     value={reviewComment}
@@ -447,7 +523,7 @@ function ReviewerApplications() {
 
                 <button
                   onClick={handleSubmitReview}
-                  disabled={submitting || !reviewDecision || !reviewComment.trim()}
+                  disabled={submitting || !reviewDecision}
                   className="w-full bg-gradient-to-r from-oamk-orange-500 to-oamk-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-oamk-orange-600 hover:to-oamk-orange-700 focus:outline-none focus:ring-2 focus:ring-oamk-orange-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? 'Submitting Review...' : 'Submit Review'}
@@ -455,12 +531,10 @@ function ReviewerApplications() {
               </div>
             )}
           </div>
+          </div>
       </div>
     </div>
   )
-  }
-
-  return null
 }
 
 export default ReviewerApplications 

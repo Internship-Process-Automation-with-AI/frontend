@@ -1,5 +1,5 @@
 // API service for communicating with the backend
-const API_BASE_URL = 'http://localhost:8000'
+const API_BASE_URL = 'http://localhost:8001'
 
 // Request interceptor for tracking API calls
 class RequestInterceptor {
@@ -437,6 +437,52 @@ class ApiService {
       throw new Error(errorData.detail || 'Failed to delete application')
     }
     return true
+  }
+
+  // Submit appeal for a certificate
+  async submitAppeal (certificateId, appealReason, reviewerId) {
+    const requestId = requestInterceptor.generateRequestId()
+    const request = {
+      id: requestId,
+      type: 'submit_appeal',
+      progress: 0,
+      startTime: Date.now()
+    }
+
+    requestInterceptor.addRequest(request)
+
+    try {
+      requestInterceptor.updateRequest(requestId, { progress: 25 })
+      const body = { appeal_reason: appealReason }
+      if (reviewerId) body.reviewer_id = reviewerId
+      const response = await fetch(
+        `${this.baseUrl}/certificate/${certificateId}/appeal`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        }
+      )
+      requestInterceptor.updateRequest(requestId, { progress: 75 })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          errorData.detail || `Failed to submit appeal: ${response.status}`
+        )
+      }
+
+      const result = await response.json()
+      requestInterceptor.updateRequest(requestId, { progress: 100 })
+      requestInterceptor.removeRequest(requestId)
+      return result
+    } catch (error) {
+      requestInterceptor.removeRequest(requestId)
+      console.error('Error submitting appeal:', error)
+      throw error
+    }
   }
 }
 

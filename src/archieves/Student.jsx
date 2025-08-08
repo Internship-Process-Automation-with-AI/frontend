@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import apiService from '../api.js'
+import React, { useState, useEffect, useRef } from 'react'
+import apiService from '../api_calls/studentAPI.js'
 import LoadingOverlay from './LoadingOverlay.jsx'
 import { useDocumentProcessing } from '../hooks/useApiLoading.js'
 

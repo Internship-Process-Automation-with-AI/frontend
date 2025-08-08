@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import EmailEntry from '../components/common/EmailEntry.jsx'
 import { GraduationCapIcon } from '../components/common/Icons.jsx'
-import apiService from '../api.js'
+import { verifyStudent } from '../api_calls/studentAPI.js'
 
 const StudentLanding = () => {
   const [studentEmail, setStudentEmail] = useState('')
@@ -19,7 +19,7 @@ const StudentLanding = () => {
     try {
       setError(null)
       setIsProcessing(true)
-      const studentData = await apiService.verifyStudent(studentEmail)
+      const studentData = await verifyStudent(studentEmail)
       
       // Store student data in localStorage for persistence
       localStorage.setItem('studentEmail', studentEmail)

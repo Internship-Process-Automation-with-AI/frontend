@@ -293,3 +293,60 @@ export async function getCertificateDetails (certificateId) {
     throw error
   }
 }
+
+/**
+ * Submit appeal review decision
+ *
+ * @param {string} certificateId - Certificate's UUID
+ * @param {Object} payload - Appeal review data
+ * @param {string} payload.appeal_status - 'APPROVED' | 'REJECTED'
+ * @param {string} payload.appeal_review_comment - comment text
+ * @returns {Promise<Object>} Result
+ */
+export async function submitAppealReview (certificateId, payload) {
+  try {
+    if (!payload?.appeal_status || !payload?.appeal_review_comment) {
+      throw new Error('Both appeal status and review comment are required')
+    }
+
+    const response = await fetch(
+      buildUrl(API_ENDPOINTS.CERTIFICATE_APPEAL_REVIEW(certificateId)),
+      {
+        method: 'POST',
+        headers: DEFAULT_HEADERS,
+        body: JSON.stringify({
+          appeal_status: payload.appeal_status.toUpperCase(),
+          appeal_review_comment: payload.appeal_review_comment
+        }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT)
+      }
+    )
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Certificate not found')
+      } else if (response.status === 400) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || ERROR_MESSAGES.VALIDATION_ERROR)
+      } else {
+        throw new Error(
+          `HTTP ${response.status}: ${ERROR_MESSAGES.SERVER_ERROR}`
+        )
+      }
+    }
+
+    const data = await response.json()
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to submit appeal review')
+    }
+
+    return data
+  } catch (error) {
+    if (error.name === 'TimeoutError') {
+      throw new Error(ERROR_MESSAGES.TIMEOUT_ERROR)
+    } else if (error.name === 'TypeError') {
+      throw new Error(ERROR_MESSAGES.NETWORK_ERROR)
+    }
+    throw error
+  }
+}

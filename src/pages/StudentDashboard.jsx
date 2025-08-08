@@ -10,7 +10,12 @@ import ApplicationDetails from '../components/student/ApplicationDetails.jsx'
 import Applications from '../components/student/Applications.jsx'
 import ProcessingModal from '../components/student/ProcessingModal.jsx'
 import LoadingOverlay from '../components/student/LoadingOverlay.jsx'
-import apiService from '../api.js'
+import { 
+  getStudentApplications, 
+  uploadCertificate, 
+  processCertificate, 
+  deleteApplication 
+} from '../api_calls/studentAPI.js'
 
 const StudentDashboard = () => {
   const location = useLocation()
@@ -96,7 +101,7 @@ const StudentDashboard = () => {
         throw new Error('Student ID not available')
       }
 
-      const uploadResult = await apiService.uploadCertificate(
+      const uploadResult = await uploadCertificate(
         studentData.student_id,
         formData.document,
         formData.trainingType
@@ -116,7 +121,7 @@ const StudentDashboard = () => {
       console.log('Step 2: Processing certificate...')
       setProcessingProgress(75)
       
-      const processResult = await apiService.processCertificate(certificateId)
+      const processResult = await processCertificate(certificateId)
       console.log('Process result:', processResult)
       
       setProcessingProgress(100)
@@ -140,7 +145,7 @@ const StudentDashboard = () => {
   // Refresh applications
   const refreshApplications = async () => {
     try {
-      const applications = await apiService.getStudentApplications(studentEmail)
+      const applications = await getStudentApplications(studentEmail)
       setApplications(applications)
     } catch (err) {
       console.warn('Failed to fetch applications:', err)
@@ -169,7 +174,7 @@ const StudentDashboard = () => {
   // Delete application handler
   const handleDeleteApplication = async (applicationId) => {
     try {
-      await apiService.deleteApplication(applicationId)
+      await deleteApplication(applicationId)
       await refreshApplications()
     } catch (err) {
       console.error('Delete error:', err)
@@ -191,8 +196,15 @@ const StudentDashboard = () => {
   }
 
   // View application details handler
-  const handleViewApplicationDetails = (application) => {
-    setSelectedApplication(application)
+  const handleViewApplicationDetails = async (application) => {
+    // Force refresh the applications to get the latest data
+    await refreshApplications()
+    
+    // Find the updated application data
+    const updatedApplications = await getStudentApplications(studentEmail)
+    const updatedApplication = updatedApplications.find(app => app.certificate_id === application.certificate_id)
+    
+    setSelectedApplication(updatedApplication || application)
     setCurrentView('application-details')
   }
 

@@ -1,43 +1,43 @@
 import React, { useState } from 'react'
-import { ArrowLeftIcon, CheckCircleIcon, AlertCircleIcon, ClockIcon, UserIcon, EyeIcon, DownloadIcon } from '../common/Icons.jsx'
+import { previewCertificate, downloadAndSaveCertificate } from '../../api_calls/studentAPI.js'
 import PreviewModal from '../common/PreviewModal.jsx'
-import apiService from '../../api.js'
+import { 
+  ClockIcon, 
+  CheckCircleIcon, 
+  AlertCircleIcon, 
+  UserIcon,
+  EyeIcon,
+  DownloadIcon,
+  ArrowLeftIcon
+} from '../common/Icons.jsx'
 
 const ApplicationDetails = ({ application, onBackToApplications }) => {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+
   const getStatusIcon = (status) => {
     switch (status) {
+      case 'PENDING':
+        return <ClockIcon className="w-8 h-8 text-yellow-500" />
       case 'ACCEPTED':
-        return <CheckCircleIcon className="w-6 h-6 text-green-500" />
+        return <CheckCircleIcon className="w-8 h-8 text-green-500" />
       case 'REJECTED':
-        return <AlertCircleIcon className="w-6 h-6 text-red-500" />
+        return <AlertCircleIcon className="w-8 h-8 text-red-500" />
       case 'PENDING_FOR_APPROVAL':
-        return <UserIcon className="w-6 h-6 text-blue-500" />
-      case 'REVIEWED':
-        return <CheckCircleIcon className="w-6 h-6 text-green-500" />
-      case 'APPEAL_PENDING':
-        return <ClockIcon className="w-6 h-6 text-orange-500" />
-      case 'APPEAL_APPROVED':
-        return <CheckCircleIcon className="w-6 h-6 text-green-500" />
-      case 'APPEAL_REJECTED':
-        return <AlertCircleIcon className="w-6 h-6 text-red-500" />
+        return <UserIcon className="w-8 h-8 text-blue-500" />
       default:
-        return <ClockIcon className="w-6 h-6 text-gray-500" />
+        return <ClockIcon className="w-8 h-8 text-gray-500" />
     }
   }
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'PENDING': return 'text-yellow-600 bg-yellow-50'
       case 'ACCEPTED': return 'text-green-600 bg-green-50'
       case 'REJECTED': return 'text-red-600 bg-red-50'
       case 'PENDING_FOR_APPROVAL': return 'text-blue-600 bg-blue-50'
-      case 'REVIEWED': return 'text-green-600 bg-green-50'
-      case 'APPEAL_PENDING': return 'text-orange-600 bg-orange-50'
-      case 'APPEAL_APPROVED': return 'text-green-600 bg-green-50'
-      case 'APPEAL_REJECTED': return 'text-red-600 bg-red-50'
       default: return 'text-gray-600 bg-gray-50'
     }
   }
@@ -80,7 +80,7 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
         return
       }
       
-      const url = await apiService.previewCertificate(application.certificate_id)
+      const url = await previewCertificate(application.certificate_id)
       setPreviewUrl(url)
       setIsPreviewOpen(true)
     } catch (err) {
@@ -96,7 +96,7 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
     setError(null)
     try {
       console.log('Download request for certificate_id:', application.certificate_id)
-      await apiService.downloadCertificate(application.certificate_id)
+      await downloadAndSaveCertificate(application.certificate_id, application.filename)
     } catch (err) {
       setError('Failed to download document. Please try again.')
       console.error('Download error:', err)
@@ -168,11 +168,6 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                 <label className="text-sm font-medium text-gray-600">Training Type</label>
                 <p className="text-gray-800 font-medium">{application.training_type}</p>
               </div>
-              {/* <div>
-                <label className="text-sm font-medium text-gray-600">Date of Submission</label>
-                <p className="text-gray-800">{formatDate(application.submitted_date)}</p>
-              </div> */}
-
             </div>
           </div>
 
@@ -180,17 +175,20 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">AI Evaluation Results</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {application.total_working_hours && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Total Working Hours</label>
-                  <p className="text-gray-800 font-medium mt-1">{application.total_working_hours} hours</p>
-                </div>
-              )}
+              <div>
+                <label className="text-sm font-medium text-gray-600">Total Working Hours</label>
+                <p className="text-gray-800 font-medium mt-1">
+                  {application.total_working_hours
+                    ? `${application.total_working_hours} hours`
+                    : 'Not available'
+                  }
+                </p>
+              </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-600">Credits Awarded</label>
-                <p className={`font-semibold mt-1 ${application.credits > 0 ? 'text-green-600' : 'text-gray-600'}`}>
-                  {application.credits} ECTS
+                <p className={`font-semibold mt-1 ${(application.credits_awarded || 0) > 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                  {application.credits_awarded || 0} ECTS
                 </p>
               </div>
 
@@ -227,53 +225,27 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
               </div>
             </div>
 
-            {(application.supporting_evidence || application.challenging_evidence) && (
-              <div className="mt-6 space-y-4">
-                {application.supporting_evidence && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Supporting Evidence</label>
-                    <div className="mt-2 p-4 bg-green-50 rounded-lg">
-                      <p className="text-gray-800">{application.supporting_evidence}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {application.challenging_evidence && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Challenging Evidence</label>
-                    <div className="mt-2 p-4 bg-red-50 rounded-lg">
-                      <p className="text-gray-800">{application.challenging_evidence}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Status Information */}
-          {/* <div className="card">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Status</h2>
-            <div className="space-y-4">
+            {/* Evidence Section */}
+            <div className="mt-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-600">Current Status</label>
-                <div className="flex items-center space-x-2 mt-1">
-                  {getStatusIcon(application.status)}
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
-                    {formatStatus(application.status)}
-                  </span>
+                <label className="text-sm font-medium text-gray-600">Supporting Evidence</label>
+                <div className="mt-2 p-4 bg-green-50 rounded-lg">
+                  <p className="text-gray-800">
+                    {application.supporting_evidence || 'No supporting evidence available.'}
+                  </p>
                 </div>
               </div>
               
-              {application.status === 'PENDING_FOR_APPROVAL' && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-gray-600">Waiting for reviewer decision...</span>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Challenging Evidence</label>
+                <div className="mt-2 p-4 bg-red-50 rounded-lg">
+                  <p className="text-gray-800">
+                    {application.challenging_evidence || 'No challenging evidence available.'}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
-          </div> */}
-
-
+          </div>
 
           {/* Review Information */}
           {(application.reviewer_name || application.reviewer_decision) && (
@@ -330,6 +302,23 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                   </div>
                 )}
                 
+                {application.reviewer_decision === 'FAIL' && (
+                  <div>
+                    <div className="mt-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-red-800 font-medium">Final Decision</p>
+                          <p className="text-red-700 text-sm">
+                            This application has been reviewed by a human reviewer and the final decision is rejection. 
+                            The review process is now complete and no further appeals are possible.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {application.final_credits_awarded && application.final_credits_awarded !== application.credits && (
                   <div>
                     <label className="text-sm font-medium text-gray-600">Final Credits Awarded</label>
@@ -343,57 +332,41 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
             </div>
           )}
 
-          {/* Appeal Information */}
-          {application.appeal_status && (
+          {/* Student Comment */}
+          {application.student_comment && (
             <div className="card">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Appeal Information</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Student Comment</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Appeal Status</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    {getStatusIcon(application.appeal_status)}
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.appeal_status)}`}>
-                      {formatStatus(application.appeal_status)}
-                    </span>
+                  <label className="text-sm font-medium text-gray-600">Comment</label>
+                  <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-wrap">{application.student_comment}</p>
                   </div>
                 </div>
-                
-                {application.appeal_submitted_date && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Appeal Submitted</label>
-                    <p className="text-gray-800">{formatDate(application.appeal_submitted_date)}</p>
-                  </div>
-                )}
-                
-                {application.appeal_reason && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Appeal Message</label>
-                    <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-800 whitespace-pre-wrap">{application.appeal_reason}</p>
+                {!application.reviewer_decision && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                      <ClockIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-blue-800 font-medium">Under Review</p>
+                        <p className="text-blue-700 text-sm">
+                          Your comment has been submitted and your application is currently under human review.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
-                
-                {application.appeal_reviewer_name && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Appeal Reviewer</label>
-                    <p className="text-gray-800">{application.appeal_reviewer_name}</p>
-                  </div>
-                )}
-                
-                {application.appeal_review_comment && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Reviewer's Comment</label>
-                    <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-800">{application.appeal_review_comment}</p>
+                {application.reviewer_decision && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                      <CheckCircleIcon className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-gray-800 font-medium">Review Completed</p>
+                        <p className="text-gray-700 text-sm">
+                          Your comment was considered during the review process. The reviewer has made their final decision.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-                
-                {application.appeal_reviewed_date && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Appeal Reviewed</label>
-                    <p className="text-gray-800">{formatDate(application.appeal_reviewed_date)}</p>
                   </div>
                 )}
               </div>
@@ -455,23 +428,8 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                   )}
                 </div>
 
-                {/* Step 4: Appeal (if applicable) */}
-                {application.appeal_submitted_date && (
-                  <div className="flex flex-col items-center relative">
-                    <div className={`w-8 h-8 rounded-full  flex items-center justify-center z-10 
-                      ${application.appeal_reviewed_date ? 'border-green-500 bg-green-100' : 'border-orange-500 bg-orange-100 animate-pulse'}`}>
-                      {application.appeal_reviewed_date ? (
-                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <ClockIcon className="w-5 h-5 text-orange-500" />
-                      )}
-                    </div>
-                    <p className="text-xs font-medium mt-2 text-center">Appeal</p>
-                    {application.appeal_reviewed_date && (
-                      <p className="text-xs text-gray-500 mt-1 whitespace-nowrap">{formatDate(application.appeal_reviewed_date)}</p>
-                    )}
-                  </div>
-                )}
+                {/* Step 4: Human Review - removed appeal step */}
+                {/* Appeal is now just part of the normal review process */}
               </div>
 
               {/* Current Status Note */}
@@ -491,19 +449,19 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                     Application approved by reviewer - review completed successfully
                   </p>
                 )}
-                {application.reviewer_decision === 'FAIL' && !application.appeal_submitted_date && (
+                {application.reviewer_decision === 'FAIL' && (
                   <p className="text-sm text-red-600">
-                    Application was rejected by reviewer. You may submit an appeal if you disagree with the decision.
+                    Application was rejected by reviewer - final decision completed
                   </p>
                 )}
-                {application.appeal_submitted_date && !application.appeal_reviewed_date && (
-                  <p className="text-sm text-orange-600">
-                    Appeal submitted and under review
+                {application.ai_decision === 'REJECTED' && !application.reviewer_decision && !application.student_comment && (
+                  <p className="text-sm text-red-600">
+                    Application was rejected by AI. You may submit a comment and request human review if you disagree with the decision.
                   </p>
                 )}
-                {application.appeal_reviewed_date && (
-                  <p className="text-sm text-green-600">
-                    Appeal review completed
+                {application.student_comment && !application.reviewer_decision && (
+                  <p className="text-sm text-blue-600">
+                    Student comment submitted - application is under human review
                   </p>
                 )}
               </div>
