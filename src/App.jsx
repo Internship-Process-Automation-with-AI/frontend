@@ -1,10 +1,21 @@
-import React from 'react'
+import React, { useState, useRef } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Reviewer from './pages/Reviewer.jsx'
 import ReviewerLanding from './pages/ReviewerLanding.jsx'
 import ReviewerApplications from './pages/ReviewerApplications.jsx'
 import StudentLanding from './pages/StudentLanding.jsx'
 import StudentDashboard from './pages/StudentDashboard.jsx'
+
+// Import components used in renderCurrentView
+import EmailEntry from './components/common/EmailEntry.jsx'
+import Dashboard from './components/student/Dashboard.jsx'
+import UploadCertificate from './components/student/UploadCertificate.jsx'
+import ReviewSubmit from './components/student/ReviewSubmit.jsx'
+import Results from './components/student/Results.jsx'
+import Approval from './components/student/Approval.jsx'
+import RequestReview from './components/student/RequestReview.jsx'
+import Applications from './components/student/Applications.jsx'
+import ApplicationDetails from './components/student/ApplicationDetails.jsx'
 
 function App() {
   // State management
