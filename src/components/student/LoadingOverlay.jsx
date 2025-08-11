@@ -1,4 +1,4 @@
-import { useApiLoading, useDocumentProcessing } from '../hooks/useApiLoading.js';
+import { useApiLoading, useDocumentProcessing } from '../../hooks/useApiLoading.js';
 
 const LoadingOverlay = () => {
   const { hasActiveRequests, overallProgress, currentOperation } = useApiLoading();

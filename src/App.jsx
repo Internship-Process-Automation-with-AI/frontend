@@ -1,15 +1,10 @@
-import React, { useState, useRef } from 'react'
-import EmailEntry from './components/EmailEntry'
-import Dashboard from './components/Dashboard'
-import UploadCertificate from './components/UploadCertificate'
-import ReviewSubmit from './components/ReviewSubmit'
-import Results from './components/Results'
-import Approval from './components/Approval'
-import RequestReview from './components/RequestReview'
-import ApplicationDetails from './components/ApplicationDetails'
-import Applications from './components/Applications'
-import ProcessingModal from './components/ProcessingModal'
-import LoadingOverlay from './components/LoadingOverlay'
+import React from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Reviewer from './pages/Reviewer.jsx'
+import ReviewerLanding from './pages/ReviewerLanding.jsx'
+import ReviewerApplications from './pages/ReviewerApplications.jsx'
+import StudentLanding from './pages/StudentLanding.jsx'
+import StudentDashboard from './pages/StudentDashboard.jsx'
 
 function App() {
   // State management
@@ -448,23 +443,26 @@ function App() {
   }
 
   return (
-    <div className="App">
-      {renderCurrentView()}
-      
-      {/* Processing Modal */}
-      <ProcessingModal
-        isOpen={isDocumentProcessing}
-        processingStage={processingStage}
-        processingProgress={processingProgress}
-        onCancel={() => {
-          setIsDocumentProcessing(false)
-          setCurrentView('review')
-        }}
-      />
-      
-      {/* Loading Overlay for API calls */}
-      <LoadingOverlay isVisible={apiIsProcessing} progress={progress} />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        {/* Reviewer Portal Routes */}
+        <Route path="/reviewer" element={<ReviewerLanding />} />
+        <Route path="/reviewer/portal" element={<Reviewer />} />
+        <Route path="/reviewer/portal/applications" element={<ReviewerApplications />} />
+        <Route path="/reviewer/portal/applications/:certificateId" element={<ReviewerApplications />} />
+        
+        {/* Student Portal Routes */}
+        <Route path="/student" element={<StudentLanding />} />
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/upload" element={<StudentDashboard />} />
+        <Route path="/student/applications" element={<StudentDashboard />} />
+        <Route path="/student/applications/:certificateId" element={<StudentDashboard />} />
+        
+        {/* Default route - redirect to student portal */}
+        <Route path="/" element={<StudentLanding />} />
+        <Route path="*" element={<StudentLanding />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

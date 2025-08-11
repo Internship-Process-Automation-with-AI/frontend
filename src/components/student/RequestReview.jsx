@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { getReviewers, submitAppeal } from '../../api_calls/studentAPI.js'
 
 const RequestReview = ({ 
   results, 
@@ -11,9 +12,37 @@ const RequestReview = ({
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [error, setError] = useState(null)
 
+  // Reviewer selection state
+  const [reviewers, setReviewers] = useState([])
+  const [selectedReviewerId, setSelectedReviewerId] = useState('')
+  const [loadingReviewers, setLoadingReviewers] = useState(false)
+
+  useEffect(() => {
+    const loadReviewers = async () => {
+      try {
+        setLoadingReviewers(true)
+        const list = await getReviewers()
+        setReviewers(list)
+        // Preselect first reviewer if any
+        if (list && list.length > 0) {
+          setSelectedReviewerId(list[0].reviewer_id)
+        }
+      } catch (e) {
+        console.warn('Failed to load reviewers', e)
+      } finally {
+        setLoadingReviewers(false)
+      }
+    }
+    loadReviewers()
+  }, [])
+
   const handleSubmitAppeal = async () => {
     if (!appealReason.trim()) {
-      setError('Please provide a reason for your appeal.')
+      setError('Please provide a reason for your request.')
+      return
+    }
+    if (!selectedReviewerId) {
+      setError('Please select a reviewer to assign your application.')
       return
     }
 
@@ -21,21 +50,8 @@ const RequestReview = ({
       setIsSubmitting(true)
       setError(null)
       
-      // Make the API call to submit appeal
-      const response = await fetch(`http://localhost:8000/certificate/${certificateId}/appeal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          appeal_reason: appealReason
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || 'Failed to submit appeal')
-      }
+      // Submit appeal using the new studentAPI function
+      await submitAppeal(certificateId, appealReason, selectedReviewerId)
       
       setIsSubmitted(true)
       // Refresh applications list after successful appeal submission
@@ -44,7 +60,7 @@ const RequestReview = ({
       }
     } catch (err) {
       console.error('Appeal submission error:', err)
-      setError('Failed to submit appeal. Please try again.')
+      setError(err.message || 'Failed to submit request. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -56,9 +72,9 @@ const RequestReview = ({
         <div className="max-w-md mx-auto px-4">
           <div className="card text-center">
             <div className="text-blue-600 text-6xl mb-4">📝</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Appeal Submitted!</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Request Submitted!</h2>
             <p className="text-gray-600 mb-6">
-              Your appeal has been successfully submitted. A reviewer will review your case and you will be notified of the outcome.
+              Your request has been successfully submitted. A reviewer will review your application and you will be notified of the outcome.
             </p>
             <button
               onClick={() => {
@@ -84,7 +100,7 @@ const RequestReview = ({
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Request Review</h1>
-          <p className="text-gray-600">Submit an appeal for your rejected application</p>
+          <p className="text-gray-600">Submit a comment for your rejected application and request human review</p>
         </div>
 
         {/* Application Summary */}
@@ -110,9 +126,9 @@ const RequestReview = ({
           </div>
         </div>
 
-        {/* Appeal Form */}
+        {/* Request Form */}
         <div className="card mb-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Appeal Details</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-4">Request Details</h3>
           
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -123,7 +139,7 @@ const RequestReview = ({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Reason for Appeal *
+                Comment / Reason for Review *
               </label>
               <textarea
                 value={appealReason}
@@ -133,21 +149,48 @@ const RequestReview = ({
                 rows="6"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Be specific and provide relevant details to support your appeal.
+                Be specific and provide relevant details to support your request.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Assign to Reviewer *
+              </label>
+              <select
+                value={selectedReviewerId}
+                onChange={(e) => setSelectedReviewerId(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loadingReviewers}
+              >
+                {reviewers.length === 0 ? (
+                  <option value="" disabled>
+                    {loadingReviewers ? 'Loading reviewers...' : 'No reviewers available'}
+                  </option>
+                ) : (
+                  reviewers.map(r => (
+                    <option key={r.reviewer_id} value={r.reviewer_id}>
+                      {r.first_name || ''} {r.last_name || ''} {r.email ? `(${r.email})` : ''}
+                    </option>
+                  ))
+                )}
+              </select>
+              <p className="text-sm text-gray-500 mt-1">
+                Your application will be assigned to the selected reviewer for human review.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Appeal Guidelines */}
+        {/* Process Information */}
         <div className="card mb-6 bg-blue-50 border-blue-200">
-          <h4 className="font-semibold text-blue-800 mb-2">Appeal Guidelines</h4>
+          <h4 className="font-semibold text-blue-800 mb-2">Review Process</h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Appeals are reviewed by academic staff within 5-7 business days</li>
-            <li>• Provide specific reasons why the decision should be reconsidered</li>
-            <li>• Include any additional documentation or evidence if available</li>
-            <li>• Appeals are only accepted for valid academic or procedural reasons</li>
-            <li>• You will be notified of the appeal outcome via email</li>
+            <li>• Your comment will be reviewed by the assigned reviewer</li>
+            <li>• The reviewer will make the final decision on your application</li>
+            <li>• Reviews are typically completed within 5-7 business days</li>
+            <li>• You will be notified of the final decision via email</li>
+            <li>• The application will follow the normal approval process</li>
           </ul>
         </div>
 
@@ -161,10 +204,10 @@ const RequestReview = ({
           </button>
           <button
             onClick={handleSubmitAppeal}
-            disabled={isSubmitting || !appealReason.trim()}
+            disabled={isSubmitting || !appealReason.trim() || !selectedReviewerId}
             className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Appeal'}
+            {isSubmitting ? 'Submitting...' : 'Submit Request'}
           </button>
         </div>
       </div>

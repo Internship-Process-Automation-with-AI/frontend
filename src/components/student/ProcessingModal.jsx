@@ -1,4 +1,4 @@
-import { LoaderIcon, XIcon } from './Icons.jsx'
+import { LoaderIcon, XIcon } from '../common/Icons.jsx'
 
 const ProcessingModal = ({ 
   isOpen, 
