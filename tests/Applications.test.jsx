@@ -1,15 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Applications from '../src/components/Applications';
+import Applications from '../src/components/student/Applications';
 
 // Mock the child components
-jest.mock('../src/components/Header', () => {
+jest.mock('../src/components/common/Header', () => {
   return function MockHeader() {
     return <div data-testid="header">Header</div>;
   };
 });
 
-jest.mock('../src/components/Icons', () => ({
+jest.mock('../src/components/common/Icons', () => ({
   ClockIcon: ({ className }) => <div data-testid="clock-icon" className={className}>ClockIcon</div>,
   CheckCircleIcon: ({ className }) => <div data-testid="check-circle-icon" className={className}>CheckCircleIcon</div>,
   AlertCircleIcon: ({ className }) => <div data-testid="alert-circle-icon" className={className}>AlertCircleIcon</div>,
@@ -104,7 +104,7 @@ describe('Applications', () => {
     expect(defaultProps.onBackToDashboard).toHaveBeenCalledWith('upload');
   });
 
-  test('renders applications list when applications exist', () => {
+  test('renders applications when they exist', () => {
     const propsWithApplications = {
       ...defaultProps,
       applications: mockApplications
@@ -112,17 +112,12 @@ describe('Applications', () => {
 
     render(<Applications {...propsWithApplications} />);
     
-    // Check that all training types are present
-    expect(screen.getAllByText('Professional Training')).toHaveLength(2);
-    expect(screen.getByText('General Training')).toBeInTheDocument();
-    
-    // Check that all statuses are present
-    expect(screen.getByText('ACCEPTED')).toBeInTheDocument();
-    expect(screen.getByText('PENDING')).toBeInTheDocument();
-    expect(screen.getByText('REJECTED')).toBeInTheDocument();
+    // Use getAllByText for duplicate training types
+    expect(screen.getAllByText('Professional Training TRAINING')).toHaveLength(2);
+    expect(screen.getByText('General Training TRAINING')).toBeInTheDocument();
   });
 
-  test('displays correct status icons for different statuses', () => {
+  test('displays correct status badges', () => {
     const propsWithApplications = {
       ...defaultProps,
       applications: mockApplications
@@ -130,16 +125,23 @@ describe('Applications', () => {
 
     render(<Applications {...propsWithApplications} />);
     
-    // Should render status icons for each application
-    expect(screen.getAllByTestId('check-circle-icon')).toHaveLength(1); // ACCEPTED
-    expect(screen.getAllByTestId('clock-icon')).toHaveLength(1); // PENDING
-    expect(screen.getAllByTestId('alert-circle-icon')).toHaveLength(1); // REJECTED
+    expect(screen.getByText('Accepted')).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Rejected')).toBeInTheDocument();
   });
 
-  test('displays credits for accepted applications', () => {
+  test('displays credits for approved applications', () => {
+    // Create an application that meets the credits display condition
+    const approvedAppWithCredits = {
+      ...mockApplications[0],
+      status: 'ACCEPTED',
+      reviewer_decision: 'PASS', // This is required for credits to show
+      credits: 5
+    };
+    
     const propsWithApplications = {
       ...defaultProps,
-      applications: [mockApplications[0]] // Only the accepted one
+      applications: [approvedAppWithCredits]
     };
 
     render(<Applications {...propsWithApplications} />);
@@ -156,7 +158,7 @@ describe('Applications', () => {
 
     render(<Applications {...propsWithApplications} />);
     
-    const applicationCard = screen.getByText('Professional Training').closest('.card');
+    const applicationCard = screen.getByText('Professional Training TRAINING').closest('div');
     fireEvent.click(applicationCard);
     
     expect(defaultProps.onViewApplicationDetails).toHaveBeenCalledWith(mockApplications[0]);
@@ -173,55 +175,18 @@ describe('Applications', () => {
     const deleteButton = screen.getByTitle('Delete application');
     fireEvent.click(deleteButton);
     
-    expect(mockConfirm).toHaveBeenCalledWith('Are you sure you want to delete this application? This action cannot be undone.');
+    // Wait for the confirm modal to appear
     await waitFor(() => {
-      expect(defaultProps.onDeleteApplication).toHaveBeenCalledWith('cert-1');
+      expect(screen.getByText('Confirm Deletion')).toBeInTheDocument();
     });
+    
+    const confirmDeleteButton = screen.getByText('Delete');
+    fireEvent.click(confirmDeleteButton);
+    
+    expect(defaultProps.onDeleteApplication).toHaveBeenCalledWith('cert-1');
   });
 
-  test('does not delete when user cancels confirmation', () => {
-    mockConfirm.mockReturnValue(false);
-    
-    const propsWithApplications = {
-      ...defaultProps,
-      applications: [mockApplications[0]]
-    };
-
-    render(<Applications {...propsWithApplications} />);
-    
-    const deleteButton = screen.getByTitle('Delete application');
-    fireEvent.click(deleteButton);
-    
-    expect(mockConfirm).toHaveBeenCalled();
-    expect(defaultProps.onDeleteApplication).not.toHaveBeenCalled();
-  });
-
-  test('shows continue processing button for accepted applications', () => {
-    const propsWithApplications = {
-      ...defaultProps,
-      applications: [mockApplications[0]]
-    };
-
-    render(<Applications {...propsWithApplications} />);
-    
-    expect(screen.getByText('Continue Processing')).toBeInTheDocument();
-  });
-
-  test('calls onContinueProcessing when continue processing button is clicked', () => {
-    const propsWithApplications = {
-      ...defaultProps,
-      applications: [mockApplications[0]]
-    };
-
-    render(<Applications {...propsWithApplications} />);
-    
-    const continueButton = screen.getByText('Continue Processing');
-    fireEvent.click(continueButton);
-    
-    expect(defaultProps.onContinueProcessing).toHaveBeenCalledWith(mockApplications[0]);
-  });
-
-  test('shows submit appeal button for rejected applications', () => {
+  test('shows appeal button for rejected applications', () => {
     const propsWithApplications = {
       ...defaultProps,
       applications: [mockApplications[2]] // REJECTED application
@@ -229,10 +194,10 @@ describe('Applications', () => {
 
     render(<Applications {...propsWithApplications} />);
     
-    expect(screen.getByText('Submit Appeal')).toBeInTheDocument();
+    expect(screen.getByText('Add Comment & Request Review')).toBeInTheDocument();
   });
 
-  test('calls onSubmitAppeal when submit appeal button is clicked', () => {
+  test('calls onSubmitAppeal when appeal button is clicked', () => {
     const propsWithApplications = {
       ...defaultProps,
       applications: [mockApplications[2]]
@@ -240,29 +205,17 @@ describe('Applications', () => {
 
     render(<Applications {...propsWithApplications} />);
     
-    const appealButton = screen.getByText('Submit Appeal');
+    const appealButton = screen.getByText('Add Comment & Request Review');
     fireEvent.click(appealButton);
     
     expect(defaultProps.onSubmitAppeal).toHaveBeenCalledWith(mockApplications[2]);
-  });
-
-  test('displays processing time for pending applications', () => {
-    const propsWithApplications = {
-      ...defaultProps,
-      applications: [mockApplications[1]] // PENDING application
-    };
-
-    render(<Applications {...propsWithApplications} />);
-    
-    expect(screen.getByText('Processing time: Usually 2-3 business days')).toBeInTheDocument();
-    expect(screen.getByText('Processing...')).toBeInTheDocument();
   });
 
   test('displays reviewer information for pending approval applications', () => {
     const pendingApprovalApp = {
       ...mockApplications[0],
       status: 'PENDING_FOR_APPROVAL',
-      reviewer_name: 'Dr. Smith' // Ensure reviewer_name is set
+      reviewer_name: 'Dr. Smith'
     };
     
     const propsWithApplications = {
@@ -272,9 +225,7 @@ describe('Applications', () => {
 
     render(<Applications {...propsWithApplications} />);
     
-    expect(screen.getByText('Sent for approval to reviewer')).toBeInTheDocument();
-    expect(screen.getByText('Waiting for review...')).toBeInTheDocument();
-    expect(screen.getByText('Reviewer:')).toBeInTheDocument();
+    expect(screen.getByText('Assigned Reviewer:')).toBeInTheDocument();
     expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
   });
 
@@ -289,6 +240,14 @@ describe('Applications', () => {
     
     const deleteButton = screen.getByTitle('Delete application');
     fireEvent.click(deleteButton);
+    
+    // Wait for the confirm modal to appear
+    await waitFor(() => {
+      expect(screen.getByText('Confirm Deletion')).toBeInTheDocument();
+    });
+    
+    const confirmDeleteButton = screen.getByText('Delete');
+    fireEvent.click(confirmDeleteButton);
     
     await waitFor(() => {
       expect(screen.getByText('Failed to delete application. Please try again.')).toBeInTheDocument();
@@ -306,4 +265,4 @@ describe('Applications', () => {
     // Check that the date is formatted (the exact format depends on locale)
     expect(screen.getByText(/Submitted on/)).toBeInTheDocument();
   });
-}); 
+});

@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom';
 
+// Polyfill for TextEncoder/TextDecoder (required for react-router-dom in Node.js)
+global.TextEncoder = require('util').TextEncoder;
+global.TextDecoder = require('util').TextDecoder;
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -87,4 +91,4 @@ beforeAll(() => {
 afterAll(() => {
   console.error = originalError;
   console.warn = originalWarn;
-}); 
+});

@@ -1,28 +1,28 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import UploadCertificate from '../src/components/UploadCertificate';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import UploadCertificate from '../src/components/student/UploadCertificate';
 
 // Mock the child components
-jest.mock('../src/components/Header', () => {
+jest.mock('../src/components/common/Header', () => {
   return function MockHeader() {
     return <div data-testid="header">Header</div>;
   };
 });
 
-jest.mock('../src/components/StepIndicator', () => {
+jest.mock('../src/components/student/StepIndicator', () => {
   return function MockStepIndicator({ currentStep }) {
     return <div data-testid="step-indicator">Step {currentStep}</div>;
   };
 });
 
-jest.mock('../src/components/Icons', () => ({
+jest.mock('../src/components/common/Icons', () => ({
   UploadIcon: ({ className }) => <div data-testid="upload-icon" className={className}>UploadIcon</div>,
   FileTextIcon: ({ className }) => <div data-testid="file-text-icon" className={className}>FileTextIcon</div>,
   XIcon: ({ className }) => <div data-testid="x-icon" className={className}>XIcon</div>,
   RefreshCwIcon: ({ className }) => <div data-testid="refresh-icon" className={className}>RefreshCwIcon</div>,
 }));
 
-describe('UploadCertificate', () => {
+describe('UploadCertificate Component', () => {
   const mockClick = jest.fn();
   
   const defaultProps = {
@@ -242,4 +242,4 @@ describe('UploadCertificate', () => {
     
     expect(screen.getByText('1.00 MB')).toBeInTheDocument();
   });
-}); 
+});

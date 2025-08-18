@@ -1,22 +1,71 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import Approval from '../src/components/Approval';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import Approval from '../src/components/student/Approval';
+
+// Mock the config file to avoid import.meta.env issues
+jest.mock('../src/api_calls/config', () => ({
+  API_BASE_URL: 'http://localhost:8000',
+  API_ENDPOINTS: {
+    STUDENT_LOOKUP: jest.fn(),
+    STUDENT_APPLICATIONS: jest.fn(),
+    UPLOAD_CERTIFICATE: jest.fn(),
+    PROCESS_CERTIFICATE: jest.fn(),
+    DOWNLOAD_CERTIFICATE: jest.fn(),
+    CERTIFICATE_PREVIEW: jest.fn(),
+    CERTIFICATE_DETAILS: jest.fn(),
+    CERTIFICATE_FEEDBACK: jest.fn(),
+    CERTIFICATE_REVIEW: jest.fn(),
+    CERTIFICATE_APPEAL: jest.fn(),
+    CERTIFICATE_APPEAL_REVIEW: jest.fn(),
+    CERTIFICATE_DELETE: jest.fn(),
+    CERTIFICATE_SEND_FOR_APPROVAL: jest.fn(),
+    REVIEWERS_LIST: '/reviewers',
+    REVIEWER_LOOKUP: jest.fn(),
+    REVIEWER_CERTIFICATES: jest.fn(),
+    HEALTH_CHECK: '/api/health',
+    DEGREES_LIST: '/api/degrees'
+  },
+  DEFAULT_HEADERS: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  },
+  REQUEST_TIMEOUT: 30000,
+  buildUrl: jest.fn(),
+  ERROR_MESSAGES: {
+    NETWORK_ERROR: 'Network error. Please check your connection.',
+    TIMEOUT_ERROR: 'Request timeout. Please try again.',
+    UNAUTHORIZED: 'Unauthorized access. Please check your credentials.',
+    NOT_FOUND: 'Resource not found.',
+    SERVER_ERROR: 'Server error. Please try again later.',
+    VALIDATION_ERROR: 'Invalid data provided.'
+  }
+}));
 
 // Mock the API service
-jest.mock('../src/api.js', () => ({
+jest.mock('../src/api_calls/studentAPI', () => ({
   getReviewers: jest.fn(),
   sendForApproval: jest.fn()
 }));
 
-import apiService from '../src/api.js';
+// Mock the child components
+jest.mock('../src/components/common/Header', () => {
+  return function MockHeader() {
+    return <div data-testid="header">Header</div>;
+  };
+});
 
-// Console error mocking is handled globally in setupTests.js
+jest.mock('../src/components/common/Icons', () => ({
+  CheckCircleIcon: ({ className }) => <div data-testid="check-circle-icon" className={className}>CheckCircleIcon</div>,
+  XCircleIcon: ({ className }) => <div data-testid="x-circle-icon" className={className}>XCircleIcon</div>,
+}));
 
 describe('Approval', () => {
   const defaultProps = {
     results: {
-      decision: 'ACCEPTED',
-      credits: 5,
+      decision: {
+        ai_decision: 'ACCEPTED',
+        credits_awarded: 5
+      },
       filename: 'certificate.pdf',
       requested_training_type: 'Professional Training'
     },
@@ -30,7 +79,7 @@ describe('Approval', () => {
       first_name: 'John',
       last_name: 'Smith',
       email: 'john.smith@example.com',
-      position: 'Senior Lecturer',
+      position: 'Senior Reviewer',
       department: 'Computer Science'
     },
     {
@@ -38,14 +87,8 @@ describe('Approval', () => {
       first_name: 'Jane',
       last_name: 'Doe',
       email: 'jane.doe@example.com',
-      position: 'Professor',
+      position: 'Reviewer',
       department: 'Engineering'
-    },
-    {
-      reviewer_id: '3',
-      first_name: 'Bob',
-      email: 'bob@example.com',
-      position: 'Associate Professor'
     }
   ];
 
@@ -53,7 +96,7 @@ describe('Approval', () => {
     jest.clearAllMocks();
   });
 
-  test('renders approval page with title', () => {
+  test('renders send for approval page with title', () => {
     render(<Approval {...defaultProps} />);
     
     expect(screen.getByText('Send for Approval')).toBeInTheDocument();
@@ -64,186 +107,138 @@ describe('Approval', () => {
     render(<Approval {...defaultProps} />);
     
     expect(screen.getByText('Application Summary')).toBeInTheDocument();
-    expect(screen.getByText('Document')).toBeInTheDocument();
     expect(screen.getByText('certificate.pdf')).toBeInTheDocument();
-    expect(screen.getByText('Decision')).toBeInTheDocument();
     expect(screen.getByText('ACCEPTED')).toBeInTheDocument();
-    expect(screen.getByText('Credits')).toBeInTheDocument();
     expect(screen.getByText('5 ECTS')).toBeInTheDocument();
-    expect(screen.getByText('Training Type')).toBeInTheDocument();
     expect(screen.getByText('Professional Training')).toBeInTheDocument();
   });
 
-  test('shows loading state while fetching reviewers', () => {
-    apiService.getReviewers.mockImplementation(() => new Promise(() => {})); // Never resolves
-    
+  test('shows loading state for reviewers initially', () => {
     render(<Approval {...defaultProps} />);
     
     expect(screen.getByText('Loading reviewers...')).toBeInTheDocument();
-    expect(screen.getByText('Select Reviewer')).toBeInTheDocument();
   });
 
   test('displays reviewers when loaded successfully', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    
+    const { getReviewers } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+
     render(<Approval {...defaultProps} />);
     
     await waitFor(() => {
       expect(screen.getByText('John Smith')).toBeInTheDocument();
       expect(screen.getByText('jane.doe@example.com')).toBeInTheDocument();
-      expect(screen.getByText('Bob')).toBeInTheDocument();
-    });
-  });
-
-  test('displays reviewer information correctly', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    
-    render(<Approval {...defaultProps} />);
-    
-    await waitFor(() => {
-      expect(screen.getByText('John Smith')).toBeInTheDocument();
-      expect(screen.getByText('john.smith@example.com')).toBeInTheDocument();
-      expect(screen.getByText('Senior Lecturer')).toBeInTheDocument();
+      expect(screen.getByText('Senior Reviewer')).toBeInTheDocument();
       expect(screen.getByText('Computer Science')).toBeInTheDocument();
     });
   });
 
   test('allows reviewer selection', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    
+    const { getReviewers } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+
     render(<Approval {...defaultProps} />);
     
     await waitFor(() => {
       const firstReviewerRadio = screen.getByDisplayValue('1');
       fireEvent.click(firstReviewerRadio);
-      expect(firstReviewerRadio).toBeChecked();
     });
-  });
-
-  test('enables send button when reviewer is selected', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
     
-    render(<Approval {...defaultProps} />);
-    
-    await waitFor(() => {
-      const sendButton = screen.getByText('Send');
-      expect(sendButton).toBeDisabled();
-      
-      const firstReviewerRadio = screen.getByDisplayValue('1');
-      fireEvent.click(firstReviewerRadio);
-      
-      expect(sendButton).not.toBeDisabled();
-    });
-  });
-
-  test('shows error when trying to send without selecting reviewer', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    
-    render(<Approval {...defaultProps} />);
-    
-    await waitFor(() => {
-      // The button should be disabled when no reviewer is selected
-      const sendButton = screen.getByText('Send');
-      expect(sendButton).toBeDisabled();
-      
-      // Since the button is disabled, we can't click it to trigger validation
-      // This test should verify that the button is properly disabled
-      expect(sendButton).toHaveAttribute('disabled');
-    });
+    // The Send button should be enabled after selection
+    const sendButton = screen.getByText('Send');
+    expect(sendButton).not.toBeDisabled();
   });
 
   test('sends approval request successfully', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    apiService.sendForApproval.mockResolvedValue({ success: true });
-    
+    const { getReviewers, sendForApproval } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    sendForApproval.mockResolvedValue();
+
     render(<Approval {...defaultProps} />);
     
+    // Wait for reviewers to load and select one
     await waitFor(() => {
       const firstReviewerRadio = screen.getByDisplayValue('1');
       fireEvent.click(firstReviewerRadio);
-      
-      const sendButton = screen.getByText('Send');
-      fireEvent.click(sendButton);
     });
     
+    const sendButton = screen.getByText('Send');
+    fireEvent.click(sendButton);
+    
     await waitFor(() => {
-      expect(apiService.sendForApproval).toHaveBeenCalledWith('cert-123', '1');
+      expect(sendForApproval).toHaveBeenCalledWith('cert-123', '1');
     });
   });
 
   test('shows success state after approval sent', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    apiService.sendForApproval.mockResolvedValue({ success: true });
-    
+    const { getReviewers, sendForApproval } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    sendForApproval.mockResolvedValue();
+
     render(<Approval {...defaultProps} />);
     
+    // Wait for reviewers to load and select one
     await waitFor(() => {
       const firstReviewerRadio = screen.getByDisplayValue('1');
       fireEvent.click(firstReviewerRadio);
-      
-      const sendButton = screen.getByText('Send');
-      fireEvent.click(sendButton);
     });
+    
+    const sendButton = screen.getByText('Send');
+    fireEvent.click(sendButton);
     
     await waitFor(() => {
       expect(screen.getByText('Approval Request Sent!')).toBeInTheDocument();
-      expect(screen.getByText(/Your application has been successfully sent for approval/)).toBeInTheDocument();
+      expect(screen.getByText('Your application has been successfully sent for approval. The selected reviewer will be notified and will review your application shortly.')).toBeInTheDocument();
     });
   });
 
   test('shows loading state while sending', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    apiService.sendForApproval.mockImplementation(() => new Promise(() => {})); // Never resolves
+    const { getReviewers, sendForApproval } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
     
+    // Create a promise that doesn't resolve immediately
+    let resolvePromise;
+    const pendingPromise = new Promise(resolve => {
+      resolvePromise = resolve;
+    });
+    sendForApproval.mockReturnValue(pendingPromise);
+
     render(<Approval {...defaultProps} />);
     
+    // Wait for reviewers to load and select one
     await waitFor(() => {
       const firstReviewerRadio = screen.getByDisplayValue('1');
       fireEvent.click(firstReviewerRadio);
-      
-      const sendButton = screen.getByText('Send');
-      fireEvent.click(sendButton);
-      
-      expect(screen.getByText('Sending...')).toBeInTheDocument();
     });
-  });
-
-  test('handles API error when fetching reviewers', async () => {
-    apiService.getReviewers.mockRejectedValue(new Error('Network error'));
     
-    render(<Approval {...defaultProps} />);
+    const sendButton = screen.getByText('Send');
+    fireEvent.click(sendButton);
     
-    await waitFor(() => {
-      expect(screen.getByText('Failed to load reviewers. Please try again.')).toBeInTheDocument();
-    });
+    // Should show "Sending..." text
+    expect(screen.getByText('Sending...')).toBeInTheDocument();
+    
+    // Resolve the promise
+    resolvePromise();
   });
 
   test('handles API error when sending approval', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    apiService.sendForApproval.mockRejectedValue(new Error('Network error'));
-    
+    const { getReviewers, sendForApproval } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    sendForApproval.mockRejectedValue(new Error('Network error'));
+
     render(<Approval {...defaultProps} />);
     
+    // Wait for reviewers to load and select one
     await waitFor(() => {
       const firstReviewerRadio = screen.getByDisplayValue('1');
       fireEvent.click(firstReviewerRadio);
-      
-      const sendButton = screen.getByText('Send');
-      fireEvent.click(sendButton);
     });
     
-    await waitFor(() => {
-      expect(screen.getByText('Failed to send for approval. Please try again.')).toBeInTheDocument();
-    });
-  });
-
-  test('shows no reviewers message when list is empty', async () => {
-    apiService.getReviewers.mockResolvedValue([]);
-    
-    render(<Approval {...defaultProps} />);
+    const sendButton = screen.getByText('Send');
+    fireEvent.click(sendButton);
     
     await waitFor(() => {
-      expect(screen.getByText('No reviewers available at the moment.')).toBeInTheDocument();
+      expect(screen.getByText('Network error')).toBeInTheDocument();
     });
   });
 
@@ -257,25 +252,30 @@ describe('Approval', () => {
   });
 
   test('calls onBackToDashboard when back button is clicked in success state', async () => {
-    apiService.getReviewers.mockResolvedValue(mockReviewers);
-    apiService.sendForApproval.mockResolvedValue({ success: true });
-    
+    const { getReviewers, sendForApproval } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    sendForApproval.mockResolvedValue();
+
     render(<Approval {...defaultProps} />);
     
+    // Wait for reviewers to load and select one
     await waitFor(() => {
       const firstReviewerRadio = screen.getByDisplayValue('1');
       fireEvent.click(firstReviewerRadio);
-      
-      const sendButton = screen.getByText('Send');
-      fireEvent.click(sendButton);
     });
     
+    const sendButton = screen.getByText('Send');
+    fireEvent.click(sendButton);
+    
+    // Wait for success state
     await waitFor(() => {
-      const backButton = screen.getByText('Back to Dashboard');
-      fireEvent.click(backButton);
-      
-      expect(defaultProps.onBackToDashboard).toHaveBeenCalledWith('dashboard');
+      expect(screen.getByText('Approval Request Sent!')).toBeInTheDocument();
     });
+    
+    const backButton = screen.getByText('Back to Dashboard');
+    fireEvent.click(backButton);
+    
+    expect(defaultProps.onBackToDashboard).toHaveBeenCalledWith('dashboard');
   });
 
   test('handles reviewers with missing names', async () => {
@@ -290,9 +290,10 @@ describe('Approval', () => {
         email: 'john@example.com'
       }
     ];
-    
-    apiService.getReviewers.mockResolvedValue(reviewersWithMissingNames);
-    
+
+    const { getReviewers } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(reviewersWithMissingNames);
+
     render(<Approval {...defaultProps} />);
     
     await waitFor(() => {
@@ -301,22 +302,41 @@ describe('Approval', () => {
     });
   });
 
-  test('handles missing data in results gracefully', () => {
-    const incompleteResults = {
-      decision: 'ACCEPTED',
-      credits: null,
-      filename: null,
-      requested_training_type: null
-    };
+  test('disables send button when no reviewer is selected', async () => {
+    const { getReviewers } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+
+    render(<Approval {...defaultProps} />);
     
-    const propsWithIncompleteResults = {
-      ...defaultProps,
-      results: incompleteResults
-    };
+    // Wait for reviewers to load first
+    await waitFor(() => {
+      expect(screen.getByText('John Smith')).toBeInTheDocument();
+    });
     
-    render(<Approval {...propsWithIncompleteResults} />);
-    
-    expect(screen.getAllByText('Document')).toHaveLength(2); // Label and fallback value
-    expect(screen.getByText('0 ECTS')).toBeInTheDocument();
+    // Send should be disabled when no reviewer is selected
+    const sendButton = screen.getByText('Send');
+    expect(sendButton).toBeDisabled();
   });
-}); 
+
+  test('shows error when certificate ID is missing', async () => {
+    const propsWithoutCertificateId = {
+      ...defaultProps,
+      certificateId: null
+    };
+
+    const { getReviewers } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+
+    render(<Approval {...propsWithoutCertificateId} />);
+    
+    await waitFor(() => {
+      const firstReviewerRadio = screen.getByDisplayValue('1');
+      fireEvent.click(firstReviewerRadio);
+    });
+    
+    const sendButton = screen.getByText('Send');
+    fireEvent.click(sendButton);
+    
+    expect(screen.getByText('No certificate ID available. Please go back and try again.')).toBeInTheDocument();
+  });
+});

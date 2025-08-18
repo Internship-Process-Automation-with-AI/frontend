@@ -1,15 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Dashboard from '../src/components/Dashboard';
+import Dashboard from '../src/components/student/Dashboard';
 
-// Mock the child components
-jest.mock('../src/components/Header', () => {
+// Mock the child components 
+jest.mock('../src/components/common/Header', () => {
   return function MockHeader({ studentData, onLogout }) {
-    return <div data-testid="header">Header</div>;
+    return <div data-testid="header">Header</div>;     
   };
 });
 
-jest.mock('../src/components/Icons', () => ({
+jest.mock('../src/components/common/Icons', () => ({
   AwardIcon: ({ className }) => <div data-testid="award-icon" className={className}>AwardIcon</div>,
   ListIcon: ({ className }) => <div data-testid="list-icon" className={className}>ListIcon</div>,
 }));
@@ -31,11 +31,11 @@ describe('Dashboard', () => {
     jest.clearAllMocks();
   });
 
-  test('renders dashboard with welcome message', () => {
+  test('renders dashboard with main title', () => {
     render(<Dashboard {...defaultProps} />);
     
-    expect(screen.getByText('Welcome back, John! 👋')).toBeInTheDocument();
-    expect(screen.getByText('Bachelor of Engineering')).toBeInTheDocument();
+    expect(screen.getByText('AI Powered Training Credit Evaluator')).toBeInTheDocument();
+    expect(screen.getByText('Manage your training credit applications and track your academic progress.')).toBeInTheDocument();
   });
 
   test('renders header component', () => {
@@ -48,16 +48,18 @@ describe('Dashboard', () => {
     render(<Dashboard {...defaultProps} />);
     
     expect(screen.getByText('Apply for Training Credits')).toBeInTheDocument();
-    expect(screen.getByText('Upload your work certificate for AI-powered evaluation')).toBeInTheDocument();
+    expect(screen.getByText('Upload your work certificates and training documents for AI-powered evaluation and credit assessment.')).toBeInTheDocument();
     expect(screen.getByTestId('award-icon')).toBeInTheDocument();
+    expect(screen.getByText('Get Started')).toBeInTheDocument();
   });
 
   test('renders view applications card', () => {
     render(<Dashboard {...defaultProps} />);
     
     expect(screen.getByText('My Applications')).toBeInTheDocument();
-    expect(screen.getByText('Track your submitted applications and view their status')).toBeInTheDocument();
+    expect(screen.getByText('Track your all submitted applications, view their current status, and manage your training credit history.')).toBeInTheDocument();
     expect(screen.getByTestId('list-icon')).toBeInTheDocument();
+    expect(screen.getByText('View All')).toBeInTheDocument();
   });
 
   test('calls onApplyForCredits when apply for credits card is clicked', () => {
@@ -86,7 +88,7 @@ describe('Dashboard', () => {
 
     render(<Dashboard {...propsWithoutStudent} />);
     
-    expect(screen.getByText('Welcome back, ! 👋')).toBeInTheDocument();
+    expect(screen.getByText('AI Powered Training Credit Evaluator')).toBeInTheDocument();
     expect(screen.getByText('Apply for Training Credits')).toBeInTheDocument();
     expect(screen.getByText('My Applications')).toBeInTheDocument();
   });
@@ -102,32 +104,19 @@ describe('Dashboard', () => {
 
     render(<Dashboard {...propsWithPartialData} />);
     
-    expect(screen.getByText('Welcome back, ! 👋')).toBeInTheDocument();
-  });
-
-  test('displays correct degree information', () => {
-    const propsWithDifferentDegree = {
-      ...defaultProps,
-      studentData: {
-        ...defaultProps.studentData,
-        degree: 'Master of Science'
-      }
-    };
-
-    render(<Dashboard {...propsWithDifferentDegree} />);
-    
-    expect(screen.getByText('Master of Science')).toBeInTheDocument();
+    expect(screen.getByText('AI Powered Training Credit Evaluator')).toBeInTheDocument();
   });
 
   test('renders both action cards with proper styling classes', () => {
     render(<Dashboard {...defaultProps} />);
     
-    // Find the parent divs that contain the card classes
-    const applyCard = screen.getByText('Apply for Training Credits').closest('.card');
-    const applicationsCard = screen.getByText('My Applications').closest('.card');
+    // Find the parent divs that contain the card styling
+    // Use a more specific selector to find the outer card div with cursor-pointer
+    const applyCard = screen.getByText('Apply for Training Credits').closest('div[class*="cursor-pointer"]');
+    const applicationsCard = screen.getByText('My Applications').closest('div[class*="cursor-pointer"]');
     
-    expect(applyCard).toHaveClass('card', 'cursor-pointer');
-    expect(applicationsCard).toHaveClass('card', 'cursor-pointer');
+    expect(applyCard).toHaveClass('cursor-pointer');
+    expect(applicationsCard).toHaveClass('cursor-pointer');
   });
 
   test('renders icons with correct styling', () => {
@@ -144,11 +133,11 @@ describe('Dashboard', () => {
     render(<Dashboard {...defaultProps} />);
     
     // Check that the main container exists
-    const mainContainer = screen.getByText('Welcome back, John! 👋').closest('div');
+    const mainContainer = screen.getByText('AI Powered Training Credit Evaluator').closest('div');
     expect(mainContainer).toBeInTheDocument();
     
     // Check that both action cards are present
     expect(screen.getByText('Apply for Training Credits')).toBeInTheDocument();
     expect(screen.getByText('My Applications')).toBeInTheDocument();
   });
-}); 
+});

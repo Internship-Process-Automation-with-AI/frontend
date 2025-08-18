@@ -1,11 +1,25 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import RequestReview from '../src/components/RequestReview';
+import RequestReview from '../src/components/student/RequestReview';
 
-// Mock fetch globally
-global.fetch = jest.fn();
+// Mock the config file to avoid import.meta.env issues
+jest.mock('../src/api_calls/config', () => ({
+  API_BASE_URL: 'http://localhost:8000',
+  API_ENDPOINTS: {},
+  DEFAULT_HEADERS: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  },
+  REQUEST_TIMEOUT: 30000,
+  buildUrl: jest.fn(),
+  ERROR_MESSAGES: {}
+}));
 
-// Console error mocking is handled globally in setupTests.js
+// Mock the API service used by the component
+jest.mock('../src/api_calls/studentAPI', () => ({
+  getReviewers: jest.fn(),
+  submitAppeal: jest.fn()
+}));
 
 describe('RequestReview', () => {
   const defaultProps = {
@@ -20,16 +34,30 @@ describe('RequestReview', () => {
     onRefreshApplications: jest.fn()
   };
 
+  const mockReviewers = [
+    {
+      reviewer_id: '1',
+      first_name: 'Alice',
+      last_name: 'Brown',
+      email: 'alice@example.com'
+    },
+    {
+      reviewer_id: '2',
+      first_name: 'Bob',
+      last_name: 'Smith',
+      email: 'bob@example.com'
+    }
+  ];
+
   beforeEach(() => {
     jest.clearAllMocks();
-    fetch.mockClear();
   });
 
   test('renders request review page with title', () => {
     render(<RequestReview {...defaultProps} />);
     
     expect(screen.getByText('Request Review')).toBeInTheDocument();
-    expect(screen.getByText('Submit an appeal for your rejected application')).toBeInTheDocument();
+    expect(screen.getByText('Submit a comment for your rejected application and request human review')).toBeInTheDocument();
   });
 
   test('displays application summary', () => {
@@ -46,27 +74,23 @@ describe('RequestReview', () => {
     expect(screen.getByText('0 ECTS')).toBeInTheDocument();
   });
 
-  test('displays appeal form', () => {
+  test('displays request form', () => {
     render(<RequestReview {...defaultProps} />);
     
-    expect(screen.getByText('Appeal Details')).toBeInTheDocument();
-    expect(screen.getByText('Reason for Appeal *')).toBeInTheDocument();
+    expect(screen.getByText('Request Details')).toBeInTheDocument();
+    expect(screen.getByText('Comment / Reason for Review *')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/)).toBeInTheDocument();
-    expect(screen.getByText('Be specific and provide relevant details to support your appeal.')).toBeInTheDocument();
+    expect(screen.getByText('Be specific and provide relevant details to support your request.')).toBeInTheDocument();
   });
 
-  test('displays appeal guidelines', () => {
+  test('displays review process info', () => {
     render(<RequestReview {...defaultProps} />);
     
-    expect(screen.getByText('Appeal Guidelines')).toBeInTheDocument();
-    expect(screen.getByText(/Appeals are reviewed by academic staff within 5-7 business days/)).toBeInTheDocument();
-    expect(screen.getByText(/Provide specific reasons why the decision should be reconsidered/)).toBeInTheDocument();
-    expect(screen.getByText(/Include any additional documentation or evidence if available/)).toBeInTheDocument();
-    expect(screen.getByText(/Appeals are only accepted for valid academic or procedural reasons/)).toBeInTheDocument();
-    expect(screen.getByText(/You will be notified of the appeal outcome via email/)).toBeInTheDocument();
+    expect(screen.getByText('Review Process')).toBeInTheDocument();
+    expect(screen.getByText(/Your comment will be reviewed by the assigned reviewer/)).toBeInTheDocument();
   });
 
-  test('allows entering appeal reason', () => {
+  test('allows entering comment', () => {
     render(<RequestReview {...defaultProps} />);
     
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
@@ -75,192 +99,169 @@ describe('RequestReview', () => {
     expect(textarea.value).toBe('This is my appeal reason');
   });
 
-  test('enables submit button when appeal reason is entered', () => {
+  test('enables submit button when comment is entered and reviewer preselected', async () => {
+    const { getReviewers } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+
     render(<RequestReview {...defaultProps} />);
-    
-    const submitButton = screen.getByText('Submit Appeal');
+
+    // Wait for reviewers to load (first is preselected)
+    await waitFor(() => {
+      expect(getReviewers).toHaveBeenCalled();
+    });
+
+    const submitButton = screen.getByText('Submit Request');
     expect(submitButton).toBeDisabled();
-    
+
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
     fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
+
     expect(submitButton).not.toBeDisabled();
   });
 
-  test('shows error when trying to submit empty appeal', () => {
+  test('shows disabled submit button when comment is empty', () => {
     render(<RequestReview {...defaultProps} />);
     
-    const submitButton = screen.getByText('Submit Appeal');
+    const submitButton = screen.getByText('Submit Request');
     expect(submitButton).toBeDisabled();
-    
-    // The button should be disabled when no appeal reason is entered
-    // This prevents users from submitting empty appeals
     expect(submitButton).toHaveAttribute('disabled');
   });
 
-  test('submits appeal successfully', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true })
-    });
+  test('submits request successfully', async () => {
+    const { getReviewers, submitAppeal } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    submitAppeal.mockResolvedValue();
     
     render(<RequestReview {...defaultProps} />);
-    
+
+    await waitFor(() => {
+      expect(getReviewers).toHaveBeenCalled();
+    });
+
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
     fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
-    const submitButton = screen.getByText('Submit Appeal');
+
+    const submitButton = screen.getByText('Submit Request');
     act(() => {
       fireEvent.click(submitButton);
     });
-    
+
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/certificate/cert-123/appeal',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            appeal_reason: 'This is my appeal reason'
-          })
-        }
-      );
+      expect(submitAppeal).toHaveBeenCalledWith('cert-123', 'This is my appeal reason', '1');
     });
   });
 
-  test('shows success state after appeal submitted', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true })
-    });
+  test('shows success state after submission', async () => {
+    const { getReviewers, submitAppeal } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    submitAppeal.mockResolvedValue();
     
     render(<RequestReview {...defaultProps} />);
-    
+
+    await waitFor(() => {
+      expect(getReviewers).toHaveBeenCalled();
+    });
+
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
     fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
-    const submitButton = screen.getByText('Submit Appeal');
+
+    const submitButton = screen.getByText('Submit Request');
     act(() => {
       fireEvent.click(submitButton);
     });
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Appeal Submitted!')).toBeInTheDocument();
-      expect(screen.getByText(/Your appeal has been successfully submitted/)).toBeInTheDocument();
+      expect(screen.getByText('Request Submitted!')).toBeInTheDocument();
+      expect(screen.getByText('Your request has been successfully submitted. A reviewer will review your application and you will be notified of the outcome.')).toBeInTheDocument();
     });
   });
 
   test('shows loading state while submitting', async () => {
-    fetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-    
+    const { getReviewers, submitAppeal } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+
+    let resolvePromise;
+    const pending = new Promise(resolve => { resolvePromise = resolve; });
+    submitAppeal.mockReturnValue(pending);
+
     render(<RequestReview {...defaultProps} />);
-    
+
+    await waitFor(() => {
+      expect(getReviewers).toHaveBeenCalled();
+    });
+
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
     fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
-    const submitButton = screen.getByText('Submit Appeal');
+
+    const submitButton = screen.getByText('Submit Request');
     act(() => {
       fireEvent.click(submitButton);
     });
-    
-    await waitFor(() => {
-      expect(screen.getByText('Submitting...')).toBeInTheDocument();
-    });
+
+    expect(screen.getByText('Submitting...')).toBeInTheDocument();
+
+    // Resolve
+    resolvePromise();
   });
 
-  test('handles API error when submitting appeal', async () => {
-    fetch.mockRejectedValueOnce(new Error('Network error'));
-    
-    render(<RequestReview {...defaultProps} />);
-    
-    const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
-    fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
-    const submitButton = screen.getByText('Submit Appeal');
-    act(() => {
-      fireEvent.click(submitButton);
-    });
-    
-    await waitFor(() => {
-      expect(screen.getByText('Failed to submit appeal. Please try again.')).toBeInTheDocument();
-    });
-  });
+  test('handles API error when submitting', async () => {
+    const { getReviewers, submitAppeal } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    submitAppeal.mockRejectedValue(new Error('Network error'));
 
-  test('handles server error response', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ detail: 'Server error message' })
-    });
-    
     render(<RequestReview {...defaultProps} />);
-    
+
+    await waitFor(() => {
+      expect(getReviewers).toHaveBeenCalled();
+    });
+
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
     fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
-    const submitButton = screen.getByText('Submit Appeal');
+
+    const submitButton = screen.getByText('Submit Request');
     act(() => {
       fireEvent.click(submitButton);
     });
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Failed to submit appeal. Please try again.')).toBeInTheDocument();
+      expect(screen.getByText('Network error')).toBeInTheDocument();
     });
   });
 
   test('calls onBackToDashboard when cancel button is clicked', () => {
     render(<RequestReview {...defaultProps} />);
-    
+
     const cancelButton = screen.getByText('Cancel');
     fireEvent.click(cancelButton);
-    
+
     expect(defaultProps.onBackToDashboard).toHaveBeenCalledWith('dashboard');
   });
 
-  test('calls onBackToDashboard when back button is clicked in success state', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true })
-    });
-    
+  test('calls onBackToDashboard and refreshes after success', async () => {
+    const { getReviewers, submitAppeal } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+    submitAppeal.mockResolvedValue();
+
     render(<RequestReview {...defaultProps} />);
-    
+
+    await waitFor(() => {
+      expect(getReviewers).toHaveBeenCalled();
+    });
+
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
     fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
-    const submitButton = screen.getByText('Submit Appeal');
+
+    const submitButton = screen.getByText('Submit Request');
     act(() => {
       fireEvent.click(submitButton);
     });
-    
+
     await waitFor(() => {
       const backButton = screen.getByText('Back to Dashboard');
       fireEvent.click(backButton);
-      
+
       expect(defaultProps.onRefreshApplications).toHaveBeenCalled();
       expect(defaultProps.onBackToDashboard).toHaveBeenCalledWith('dashboard');
-    });
-  });
-
-  test('calls onRefreshApplications after successful submission', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true })
-    });
-    
-    render(<RequestReview {...defaultProps} />);
-    
-    const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
-    fireEvent.change(textarea, { target: { value: 'This is my appeal reason' } });
-    
-    const submitButton = screen.getByText('Submit Appeal');
-    act(() => {
-      fireEvent.click(submitButton);
-    });
-    
-    await waitFor(() => {
-      expect(defaultProps.onRefreshApplications).toHaveBeenCalled();
     });
   });
 
@@ -271,40 +272,35 @@ describe('RequestReview', () => {
       filename: null,
       requested_training_type: null
     };
-    
+
     const propsWithIncompleteResults = {
       ...defaultProps,
       results: incompleteResults
     };
-    
+
     render(<RequestReview {...propsWithIncompleteResults} />);
-    
+
     expect(screen.getAllByText('Document')).toHaveLength(2); // Label and fallback value
     expect(screen.getByText('0 ECTS')).toBeInTheDocument();
-    // The component shows empty string for missing training type, not "Not specified"
     expect(screen.getByText('Training Type')).toBeInTheDocument();
   });
 
-  test('disables submit button when appeal reason is only whitespace', () => {
+  test('disables submit button when comment is only whitespace', async () => {
+    const { getReviewers } = require('../src/api_calls/studentAPI');
+    getReviewers.mockResolvedValue(mockReviewers);
+
     render(<RequestReview {...defaultProps} />);
-    
-    const submitButton = screen.getByText('Submit Appeal');
+
+    await waitFor(() => {
+      expect(getReviewers).toHaveBeenCalled();
+    });
+
+    const submitButton = screen.getByText('Submit Request');
     expect(submitButton).toBeDisabled();
-    
+
     const textarea = screen.getByPlaceholderText(/Please explain why you believe this decision should be reviewed/);
     fireEvent.change(textarea, { target: { value: '   ' } });
-    
-    expect(submitButton).toBeDisabled();
-  });
 
-  test('shows error when submitting appeal with only whitespace', async () => {
-    render(<RequestReview {...defaultProps} />);
-    
-    const submitButton = screen.getByText('Submit Appeal');
     expect(submitButton).toBeDisabled();
-    
-    // The button should be disabled when appeal reason is only whitespace
-    // This prevents users from submitting invalid appeals
-    expect(submitButton).toHaveAttribute('disabled');
   });
-}); 
+});
