@@ -211,7 +211,7 @@ function ReviewerApplications() {
     )
   }
 
-  return (
+    return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <Header reviewerData={reviewer} onLogout={handleLogout} />
         <MessageModal 
@@ -415,7 +415,7 @@ function ReviewerApplications() {
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-1">
                     <div className="flex items-start space-x-2">
                       <AlertCircleIcon className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                      <div>
+                  <div>
                         <p className="text-orange-800 font-medium mb-1">Suggested Actions:</p>
                         <p className="text-orange-700">{application.decision.recommendation}</p>
                       </div>
@@ -431,12 +431,12 @@ function ReviewerApplications() {
             <div className="card p-6 mb-6">
               <h2 className="text-xl font-semibold mb-4">Student Comment</h2>
               <div className="space-y-4">
-                <div>
+                    <div>
                   <label className="text-sm font-medium text-gray-600">Comment</label>
                   <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-blue-800 whitespace-pre-wrap">{application.decision.student_comment}</p>
-                  </div>
-                </div>
+                      </div>
+                    </div>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <div className="flex items-start space-x-2">
                     <AlertCircleIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />

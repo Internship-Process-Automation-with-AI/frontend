@@ -95,7 +95,8 @@ const StudentDashboard = () => {
       
       // Step 1: Upload the certificate
       console.log('Step 1: Uploading certificate...')
-      setProcessingProgress(25)
+      setProcessingStage(0)
+      setProcessingProgress(10)
       
       if (!studentData?.student_id) {
         throw new Error('Student ID not available')
@@ -119,7 +120,8 @@ const StudentDashboard = () => {
 
       // Step 2: Process the certificate
       console.log('Step 2: Processing certificate...')
-      setProcessingProgress(75)
+      setProcessingStage(1)
+      setProcessingProgress(50)
       
       const processResult = await processCertificate(certificateId)
       console.log('Process result:', processResult)
@@ -159,8 +161,21 @@ const StudentDashboard = () => {
 
   // Submit appeal handler
   const handleSubmitAppeal = (application) => {
-    // Implementation for appeal submission
-    console.log('Submitting appeal for:', application)
+    // Set up results object with application data for RequestReview component
+    setResults({
+      decision: application.ai_decision || 'REJECTED',
+      credits: application.credits_awarded || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.ai_justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('request-review')
   }
 
   // Submit new application handler

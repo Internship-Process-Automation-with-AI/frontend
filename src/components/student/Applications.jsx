@@ -19,7 +19,7 @@ const Applications = ({ applications, onBackToDashboard, onDeleteApplication, on
     event.stopPropagation()
     setPendingDeleteId(applicationId)
     setConfirmOpen(true)
-  }
+    }
 
   const confirmDelete = async () => {
     if (!pendingDeleteId) return
@@ -245,7 +245,7 @@ const Applications = ({ applications, onBackToDashboard, onDeleteApplication, on
                         <p className="text-sm text-red-700 mb-3">
                           Your application was rejected by our AI system. You can submit a comment and request human review if you believe this decision was incorrect.
                         </p>
-                        <button
+                        <button 
                           onClick={(e) => {
                             e.stopPropagation()
                             onSubmitAppeal(app)
@@ -266,7 +266,7 @@ const Applications = ({ applications, onBackToDashboard, onDeleteApplication, on
       </div>
       <ConfirmModal
         isOpen={confirmOpen}
-        onClose={cancelDelete}
+        onCancel={cancelDelete}
         onConfirm={confirmDelete}
         title="Confirm Deletion"
         message={`Are you sure you want to delete this application? This action cannot be undone.`}
