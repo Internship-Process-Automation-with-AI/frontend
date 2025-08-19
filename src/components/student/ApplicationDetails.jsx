@@ -11,7 +11,7 @@ import {
   ArrowLeftIcon
 } from '../common/Icons.jsx'
 
-const ApplicationDetails = ({ application, onBackToApplications, onRequestReview }) => {
+const ApplicationDetails = ({ application, onBackToApplications, onRequestReview, onSendForApproval }) => {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -471,6 +471,19 @@ const ApplicationDetails = ({ application, onBackToApplications, onRequestReview
                   <p className="text-sm text-blue-600">
                     Student comment submitted - application is under human review
                   </p>
+                )}
+                {application.ai_decision === 'ACCEPTED' && application.status !== 'PENDING_FOR_APPROVAL' && !application.reviewer_decision && (
+                  <div>
+                    <p className="text-sm text-green-600 mb-3">
+                      The credit application is accepted but you need to send it for approval to gain credits.
+                    </p>
+                    <button
+                      onClick={() => onSendForApproval && onSendForApproval(application)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    >
+                      Send for Approval
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

@@ -213,22 +213,22 @@ const StudentDashboard = () => {
 
   // View application details handler
   const handleViewApplicationDetails = async (application) => {
-    // Force refresh the applications to get the latest data
-    await refreshApplications()
-    
-    // Find the updated application data
-    const updatedApplications = await getStudentApplications(studentEmail)
-    const updatedApplication = updatedApplications.find(app => app.certificate_id === application.certificate_id)
-    
-    setSelectedApplication(updatedApplication || application)
+    // Use the application data we already have for immediate display
+    setSelectedApplication(application)
     setCurrentView('application-details')
+    
+    // Refresh applications in the background to get latest data
+    // but don't wait for it - this ensures data is up-to-date
+    refreshApplications().catch(err => console.warn('Background refresh failed:', err))
   }
 
   // Request review from application details handler
   const handleRequestReviewFromDetails = (application) => {
     // Set the results data and navigate to request review page
     setResults({
-      decision: application.ai_decision || 'REJECTED',
+      decision: {
+        ai_decision: application.ai_decision || 'REJECTED'
+      },
       credits: application.credits || 0,
       filename: application.filename,
       student_degree: studentData?.degree,
@@ -241,6 +241,32 @@ const StudentDashboard = () => {
     })
     setCertificateId(application.certificate_id)
     setCurrentView('request-review')
+  }
+
+  // Send for approval from application details handler
+  const handleSendForApprovalFromDetails = (application) => {
+    console.log('handleSendForApprovalFromDetails called with application:', application)
+    console.log('application.ai_decision:', application.ai_decision)
+    console.log('application.decision:', application.decision)
+    console.log('application.status:', application.status)
+    
+    // Set the results data and navigate to approval page
+    setResults({
+      decision: {
+        ai_decision: application.ai_decision || 'ACCEPTED'
+      },
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('approval')
   }
 
   // Back to applications handler
@@ -332,7 +358,9 @@ const StudentDashboard = () => {
             onViewApplicationDetails={handleViewApplicationDetails}
             onContinueProcessing={(application) => {
               setResults({
-                decision: application.ai_decision || 'ACCEPTED',
+                decision: {
+                  ai_decision: application.ai_decision || 'ACCEPTED'
+                },
                 credits: application.credits || 0,
                 filename: application.filename,
                 student_degree: studentData?.degree,
@@ -356,6 +384,7 @@ const StudentDashboard = () => {
             application={selectedApplication}
             onBackToApplications={handleBackToApplications}
             onRequestReview={handleRequestReviewFromDetails}
+            onSendForApproval={handleSendForApprovalFromDetails}
           />
         )
       
