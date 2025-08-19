@@ -309,6 +309,24 @@ function App() {
     setCurrentView('application-details')
   }
 
+  const handleRequestReviewFromDetails = (application) => {
+    // Set the results data and navigate to request review page
+    setResults({
+      decision: application.ai_decision || 'REJECTED',
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('request-review')
+  }
+
   const handleBackToApplications = () => {
     setCurrentView('applications')
     setSelectedApplication(null)
@@ -436,6 +454,7 @@ function App() {
           <ApplicationDetails
             application={selectedApplication}
             onBackToApplications={handleBackToApplications}
+            onRequestReview={handleRequestReviewFromDetails}
           />
         )
       

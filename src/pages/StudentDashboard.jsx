@@ -174,11 +174,26 @@ const StudentDashboard = () => {
 
   // Delete application handler
   const handleDeleteApplication = async (applicationId) => {
+    console.log('StudentDashboard: handleDeleteApplication called with ID:', applicationId)
+    
     try {
-      await deleteApplication(applicationId)
-      await refreshApplications()
+      console.log('StudentDashboard: Calling deleteApplication API...')
+      const result = await deleteApplication(applicationId)
+      console.log('StudentDashboard: deleteApplication API result:', result)
+      
+      // Check if deletion was successful
+      if (result === true) {
+        console.log('StudentDashboard: Delete successful, refreshing applications...')
+        // Refresh the applications list
+        await refreshApplications()
+        console.log('StudentDashboard: Applications refreshed')
+      } else {
+        console.log('StudentDashboard: Delete result was not true:', result)
+        throw new Error('Delete operation did not complete successfully')
+      }
     } catch (err) {
-      console.error('Delete error:', err)
+      console.error('StudentDashboard: Delete error:', err)
+      // Re-throw the error so the calling component can handle it
       throw err
     }
   }
@@ -207,6 +222,25 @@ const StudentDashboard = () => {
     
     setSelectedApplication(updatedApplication || application)
     setCurrentView('application-details')
+  }
+
+  // Request review from application details handler
+  const handleRequestReviewFromDetails = (application) => {
+    // Set the results data and navigate to request review page
+    setResults({
+      decision: application.ai_decision || 'REJECTED',
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('request-review')
   }
 
   // Back to applications handler
@@ -321,6 +355,7 @@ const StudentDashboard = () => {
           <ApplicationDetails
             application={selectedApplication}
             onBackToApplications={handleBackToApplications}
+            onRequestReview={handleRequestReviewFromDetails}
           />
         )
       

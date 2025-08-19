@@ -11,7 +11,7 @@ import {
   ArrowLeftIcon
 } from '../common/Icons.jsx'
 
-const ApplicationDetails = ({ application, onBackToApplications }) => {
+const ApplicationDetails = ({ application, onBackToApplications, onRequestReview }) => {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -186,7 +186,7 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
               </div>
               
               <div>
-                <label className="text-sm font-medium text-gray-600">Credits Awarded</label>
+                <label className="text-sm font-medium text-gray-600">Credits Calculated</label>
                 <p className={`font-semibold mt-1 ${(application.credits_awarded || 0) > 0 ? 'text-green-600' : 'text-gray-600'}`}>
                   {application.credits_awarded || 0} ECTS
                 </p>
@@ -321,7 +321,7 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                 
                 {application.final_credits_awarded && application.final_credits_awarded !== application.credits && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Final Credits Awarded</label>
+                    <label className="text-sm font-medium text-gray-600">Final Credits Calculated</label>
                     <p className="text-green-600 font-semibold">{application.final_credits_awarded} ECTS</p>
                     <p className="text-xs text-gray-500 mt-1">
                       (Adjusted from AI suggested {application.credits} ECTS)
@@ -455,9 +455,17 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                   </p>
                 )}
                 {application.ai_decision === 'REJECTED' && !application.reviewer_decision && !application.student_comment && (
-                  <p className="text-sm text-red-600">
-                    Application was rejected by AI. You may submit a comment and request human review if you disagree with the decision.
-                  </p>
+                  <div>
+                    <p className="text-sm text-red-600 mb-3">
+                      Application was rejected by AI. You may submit a comment and request human review if you disagree with the decision.
+                    </p>
+                    <button
+                      onClick={() => onRequestReview && onRequestReview(application)}
+                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                    >
+                      Request Review
+                    </button>
+                  </div>
                 )}
                 {application.student_comment && !application.reviewer_decision && (
                   <p className="text-sm text-blue-600">
