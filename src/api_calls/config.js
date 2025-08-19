@@ -5,8 +5,8 @@
  */
 
 // Base API URL - adjust based on your backend deployment
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-console.log('API_BASE_URL:', import.meta.env.VITE_API_BASE_URL)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+console.log('API_BASE_URL:', API_BASE_URL)
 
 // Default headers for API requests
 export const DEFAULT_HEADERS = {
