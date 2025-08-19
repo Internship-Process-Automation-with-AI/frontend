@@ -494,11 +494,15 @@ export async function addFeedback (certificateId, feedback, reviewerId = null) {
  */
 export async function deleteApplication (certificateId) {
   try {
+    console.log('API: deleteApplication called with ID:', certificateId)
+    
     const response = await fetch(buildUrl(`/certificate/${certificateId}`), {
       method: 'DELETE',
       headers: DEFAULT_HEADERS,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT)
     })
+
+    console.log('API: deleteApplication response status:', response.status)
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -510,14 +514,30 @@ export async function deleteApplication (certificateId) {
       }
     }
 
-    const data = await response.json()
+    // Try to parse the response, but handle cases where there might be no body
+    let data = null
+    try {
+      const responseText = await response.text()
+      if (responseText) {
+        data = JSON.parse(responseText)
+      }
+    } catch (parseError) {
+      console.log('API: No response body or invalid JSON, treating as successful')
+      // If there's no response body or invalid JSON, treat as successful
+      return true
+    }
 
-    if (!data.success) {
+    console.log('API: deleteApplication response data:', data)
+
+    // Check if deletion was successful
+    if (data && data.success === false) {
       throw new Error(data.message || 'Failed to delete application')
     }
 
+    // If we reach here, consider it successful
     return true
   } catch (error) {
+    console.error('API: deleteApplication error:', error)
     if (error.name === 'TimeoutError') {
       throw new Error(ERROR_MESSAGES.TIMEOUT_ERROR)
     } else if (error.name === 'TypeError') {

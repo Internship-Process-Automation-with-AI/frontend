@@ -233,7 +233,9 @@ function App() {
   const handleSubmitAppeal = (application) => {
     // Set the results data and navigate to appeal page
     setResults({
-      decision: application.ai_decision || 'REJECTED',
+      decision: {
+        ai_decision: application.ai_decision || 'REJECTED'
+      },
       credits: application.credits || 0,
       filename: application.filename,
       student_degree: studentData?.degree,
@@ -307,6 +309,46 @@ function App() {
   const handleViewApplicationDetails = (application) => {
     setSelectedApplication(application)
     setCurrentView('application-details')
+  }
+
+  const handleRequestReviewFromDetails = (application) => {
+    // Set the results data and navigate to request review page
+    setResults({
+      decision: {
+        ai_decision: application.ai_decision || 'REJECTED'
+      },
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('request-review')
+  }
+
+  const handleSendForApprovalFromDetails = (application) => {
+    // Set the results data and navigate to approval page
+    setResults({
+      decision: {
+        ai_decision: application.ai_decision || 'ACCEPTED'
+      },
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('approval')
   }
 
   const handleBackToApplications = () => {
@@ -413,7 +455,9 @@ function App() {
             onContinueProcessing={(application) => {
               // Set the results data and navigate to approval page
               setResults({
-                decision: application.ai_decision || 'ACCEPTED',
+                decision: {
+                  ai_decision: application.ai_decision || 'ACCEPTED'
+                },
                 credits: application.credits || 0,
                 filename: application.filename,
                 student_degree: studentData?.degree,
@@ -436,6 +480,8 @@ function App() {
           <ApplicationDetails
             application={selectedApplication}
             onBackToApplications={handleBackToApplications}
+            onRequestReview={handleRequestReviewFromDetails}
+            onSendForApproval={handleSendForApprovalFromDetails}
           />
         )
       

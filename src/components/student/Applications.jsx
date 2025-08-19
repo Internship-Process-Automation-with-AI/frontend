@@ -23,17 +23,31 @@ const Applications = ({ applications, onBackToDashboard, onDeleteApplication, on
 
   const confirmDelete = async () => {
     if (!pendingDeleteId) return
+    
+    console.log('Starting delete process for application:', pendingDeleteId)
+    
+    // Close the modal immediately when delete is clicked
+    console.log('Closing modal immediately after delete button click')
+    setConfirmOpen(false)
+    setPendingDeleteId(null)
+    
     try {
       setDeletingId(pendingDeleteId)
       setError(null)
+      
+      console.log('Calling onDeleteApplication...')
       await onDeleteApplication(pendingDeleteId)
-    } catch (err) {
-      setError('Failed to delete application. Please try again.')
-      console.error('Delete error:', err)
-    } finally {
+      console.log('Delete completed successfully')
+      
+      // Clear the deleting state
       setDeletingId(null)
-      setConfirmOpen(false)
-      setPendingDeleteId(null)
+      
+    } catch (err) {
+      console.error('Delete error in confirmDelete:', err)
+      setError('Failed to delete application. Please try again.')
+      
+      // Clear the deleting state
+      setDeletingId(null)
     }
   }
 

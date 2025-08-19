@@ -165,6 +165,7 @@ const StudentDashboard = () => {
 
   // Submit new application handler
   const handleSubmitNewApplication = () => {
+    // Clear form data and go back to upload
     setFormData({ document: null, trainingType: '' })
     setResults(null)
     setError(null)
@@ -173,11 +174,26 @@ const StudentDashboard = () => {
 
   // Delete application handler
   const handleDeleteApplication = async (applicationId) => {
+    console.log('StudentDashboard: handleDeleteApplication called with ID:', applicationId)
+    
     try {
-      await deleteApplication(applicationId)
-      await refreshApplications()
+      console.log('StudentDashboard: Calling deleteApplication API...')
+      const result = await deleteApplication(applicationId)
+      console.log('StudentDashboard: deleteApplication API result:', result)
+      
+      // Check if deletion was successful
+      if (result === true) {
+        console.log('StudentDashboard: Delete successful, refreshing applications...')
+        // Refresh the applications list
+        await refreshApplications()
+        console.log('StudentDashboard: Applications refreshed')
+      } else {
+        console.log('StudentDashboard: Delete result was not true:', result)
+        throw new Error('Delete operation did not complete successfully')
+      }
     } catch (err) {
-      console.error('Delete error:', err)
+      console.error('StudentDashboard: Delete error:', err)
+      // Re-throw the error so the calling component can handle it
       throw err
     }
   }
@@ -197,15 +213,60 @@ const StudentDashboard = () => {
 
   // View application details handler
   const handleViewApplicationDetails = async (application) => {
-    // Force refresh the applications to get the latest data
-    await refreshApplications()
-    
-    // Find the updated application data
-    const updatedApplications = await getStudentApplications(studentEmail)
-    const updatedApplication = updatedApplications.find(app => app.certificate_id === application.certificate_id)
-    
-    setSelectedApplication(updatedApplication || application)
+    // Use the application data we already have for immediate display
+    setSelectedApplication(application)
     setCurrentView('application-details')
+    
+    // Refresh applications in the background to get latest data
+    // but don't wait for it - this ensures data is up-to-date
+    refreshApplications().catch(err => console.warn('Background refresh failed:', err))
+  }
+
+  // Request review from application details handler
+  const handleRequestReviewFromDetails = (application) => {
+    // Set the results data and navigate to request review page
+    setResults({
+      decision: {
+        ai_decision: application.ai_decision || 'REJECTED'
+      },
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('request-review')
+  }
+
+  // Send for approval from application details handler
+  const handleSendForApprovalFromDetails = (application) => {
+    console.log('handleSendForApprovalFromDetails called with application:', application)
+    console.log('application.ai_decision:', application.ai_decision)
+    console.log('application.decision:', application.decision)
+    console.log('application.status:', application.status)
+    
+    // Set the results data and navigate to approval page
+    setResults({
+      decision: {
+        ai_decision: application.ai_decision || 'ACCEPTED'
+      },
+      credits: application.credits || 0,
+      filename: application.filename,
+      student_degree: studentData?.degree,
+      training_hours: application.total_working_hours,
+      requested_training_type: application.training_type,
+      degree_relevance: application.degree_relevance,
+      supporting_evidence: application.supporting_evidence,
+      challenging_evidence: application.challenging_evidence,
+      justification: application.justification
+    })
+    setCertificateId(application.certificate_id)
+    setCurrentView('approval')
   }
 
   // Back to applications handler
@@ -240,8 +301,8 @@ const StudentDashboard = () => {
             fileInputRef={fileInputRef}
             onFileSelect={handleFileSelect}
             onInputChange={handleInputChange}
-            onContinueProcessing={handleUploadCertificate}
             onBackToDashboard={handleBackToDashboard}
+            onContinueProcessing={handleUploadCertificate}
             error={error}
           />
         )
@@ -264,6 +325,7 @@ const StudentDashboard = () => {
             onBackToDashboard={handleBackToDashboard}
             onSendForApproval={handleSendForApproval}
             onRequestReview={handleRequestReview}
+            onSubmitNewApplication={handleSubmitNewApplication}
           />
         )
       
@@ -296,7 +358,9 @@ const StudentDashboard = () => {
             onViewApplicationDetails={handleViewApplicationDetails}
             onContinueProcessing={(application) => {
               setResults({
-                decision: application.ai_decision || 'ACCEPTED',
+                decision: {
+                  ai_decision: application.ai_decision || 'ACCEPTED'
+                },
                 credits: application.credits || 0,
                 filename: application.filename,
                 student_degree: studentData?.degree,
@@ -319,6 +383,8 @@ const StudentDashboard = () => {
           <ApplicationDetails
             application={selectedApplication}
             onBackToApplications={handleBackToApplications}
+            onRequestReview={handleRequestReviewFromDetails}
+            onSendForApproval={handleSendForApprovalFromDetails}
           />
         )
       
