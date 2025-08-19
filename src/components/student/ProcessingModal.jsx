@@ -7,12 +7,8 @@ const ProcessingModal = ({
   onCancel 
 }) => {
   const stages = [
-    'Upload Certificate',
-    'OCR Text Extraction', 
-    'Content Analysis',
-    'Degree Evaluation',
-    'Credit Calculation',
-    'Results Generation'
+    'Uploading Certificate',
+    'Processing Document'
   ]
 
   if (!isOpen) return null
@@ -53,7 +49,7 @@ const ProcessingModal = ({
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1">
-            <div className="bg-oamk-orange-400 h-1 rounded-full animate-pulse"></div>
+            <div className="bg-oamk-orange-400 h-1 rounded-full animate-pulse w-full"></div>
           </div>
         </div>
         

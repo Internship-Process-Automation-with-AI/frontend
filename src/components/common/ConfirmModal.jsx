@@ -39,7 +39,7 @@ const ConfirmModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
         <div className="p-6">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${styles.iconBg}">
+          <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${styles.iconBg}`}>
             {styles.icon}
           </div>
           <h3 className="text-lg font-semibold text-gray-900 text-center">{title}</h3>

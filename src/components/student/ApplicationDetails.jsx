@@ -175,15 +175,15 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">AI Evaluation Results</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-sm font-medium text-gray-600">Total Working Hours</label>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Total Working Hours</label>
                 <p className="text-gray-800 font-medium mt-1">
                   {application.total_working_hours
                     ? `${application.total_working_hours} hours`
                     : 'Not available'
                   }
                 </p>
-              </div>
+                </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-600">Credits Awarded</label>
@@ -226,16 +226,16 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
             </div>
 
             {/* Evidence Section */}
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600">Supporting Evidence</label>
-                <div className="mt-2 p-4 bg-green-50 rounded-lg">
+              <div className="mt-6 space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Supporting Evidence</label>
+                    <div className="mt-2 p-4 bg-green-50 rounded-lg">
                   <p className="text-gray-800">
                     {application.supporting_evidence || 'No supporting evidence available.'}
                   </p>
-                </div>
-              </div>
-              
+                  </div>
+          </div>
+
               <div>
                 <label className="text-sm font-medium text-gray-600">Challenging Evidence</label>
                 <div className="mt-2 p-4 bg-red-50 rounded-lg">
@@ -347,12 +347,12 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <div className="flex items-start space-x-2">
                       <ClockIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <div>
+                  <div>
                         <p className="text-blue-800 font-medium">Under Review</p>
                         <p className="text-blue-700 text-sm">
                           Your comment has been submitted and your application is currently under human review.
                         </p>
-                      </div>
+                  </div>
                     </div>
                   </div>
                 )}
@@ -360,12 +360,12 @@ const ApplicationDetails = ({ application, onBackToApplications }) => {
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                     <div className="flex items-start space-x-2">
                       <CheckCircleIcon className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
-                      <div>
+                  <div>
                         <p className="text-gray-800 font-medium">Review Completed</p>
                         <p className="text-gray-700 text-sm">
                           Your comment was considered during the review process. The reviewer has made their final decision.
                         </p>
-                      </div>
+                  </div>
                     </div>
                   </div>
                 )}

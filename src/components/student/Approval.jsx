@@ -23,11 +23,12 @@ const Approval = ({
   }
 
   // Extract values from the results object safely
+  console.log('Approval results object:', results) // Debug log
   const decisionData = results?.decision || {}
-  const decision = decisionData.ai_decision || results?.ai_decision || 'UNKNOWN'
-  const credits = decisionData.credits_awarded || results?.credits || 0
-  const filename = results?.filename || 'Document'
-  const trainingType = results?.requested_training_type || results?.training_type || 'Not specified'
+  const decision = decisionData.ai_decision || results?.decision || results?.ai_decision || 'ACCEPTED'
+  const credits = decisionData.credits_awarded || results?.credits_awarded || results?.credits || 0
+  const filename = results?.filename || decisionData.filename || 'Unknown Document'
+  const trainingType = results?.requested_training_type || results?.training_type || decisionData.training_type || 'Unknown Training Type'
 
   // Fetch reviewers from API
   useEffect(() => {
@@ -105,12 +106,18 @@ const Approval = ({
         </div>
 
         {/* Decision Summary */}
-        <div className="card mb-6">
+        {/* <div className="card mb-6">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Application Summary</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-600 mb-1">Document</p>
-              <p className="font-semibold text-gray-800">{filename}</p>
+              <p className="font-semibold text-gray-800" title={filename}>
+                {filename === 'Unknown Document' ? (
+                  <span className="text-red-600">Document name not available</span>
+                ) : (
+                  filename
+                )}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Decision</p>
@@ -124,10 +131,16 @@ const Approval = ({
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Training Type</p>
-              <p className="font-semibold text-gray-800">{trainingType}</p>
+              <p className="font-semibold text-gray-800">
+                {trainingType === 'Unknown Training Type' ? (
+                  <span className="text-red-600">Training type not available</span>
+                ) : (
+                  trainingType
+                )}
+              </p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Reviewer Selection */}
         <div className="card mb-6">
@@ -149,42 +162,64 @@ const Approval = ({
               No reviewers available at the moment.
             </div>
           ) : (
-            <div className="space-y-3">
-              {reviewers.map((reviewer) => {
-                const reviewerName = reviewer.first_name && reviewer.last_name 
-                  ? `${reviewer.first_name} ${reviewer.last_name}`
-                  : reviewer.first_name || reviewer.last_name || reviewer.email.split('@')[0]
-                
-                return (
-                  <label
-                    key={reviewer.reviewer_id}
-                    className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedReviewer === reviewer.reviewer_id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="reviewer"
-                      value={reviewer.reviewer_id}
-                      checked={selectedReviewer === reviewer.reviewer_id}
-                      onChange={(e) => setSelectedReviewer(e.target.value)}
-                      className="mr-3 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-800">{reviewerName}</div>
-                      <div className="text-sm text-gray-600">{reviewer.email}</div>
-                      {reviewer.position && (
-                        <div className="text-sm text-gray-700">{reviewer.position}</div>
-                      )}
-                      {reviewer.department && (
-                        <div className="text-xs text-gray-500">{reviewer.department}</div>
-                      )}
-                    </div>
-                  </label>
-                )
-              })}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select a reviewer to approve your application:
+              </label>
+              <select
+                value={selectedReviewer}
+                onChange={(e) => setSelectedReviewer(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                <option value="">Choose a reviewer...</option>
+                {reviewers.map((reviewer) => {
+                  const reviewerName = reviewer.first_name && reviewer.last_name 
+                    ? `${reviewer.first_name} ${reviewer.last_name}`
+                    : reviewer.first_name || reviewer.last_name || reviewer.email.split('@')[0]
+                  
+                  const reviewerInfo = [
+                    reviewerName,
+                    reviewer.position,
+                    reviewer.department
+                  ].filter(Boolean).join(' - ')
+                  
+                  return (
+                    <option key={reviewer.reviewer_id} value={reviewer.reviewer_id}>
+                      {reviewerInfo}
+                    </option>
+                  )
+                })}
+              </select>
+              
+              {/* Show selected reviewer details */}
+              {selectedReviewer && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  {(() => {
+                    const reviewer = reviewers.find(r => r.reviewer_id === selectedReviewer)
+                    if (!reviewer) return null
+                    
+                    const reviewerName = reviewer.first_name && reviewer.last_name 
+                      ? `${reviewer.first_name} ${reviewer.last_name}`
+                      : reviewer.first_name || reviewer.last_name || reviewer.email.split('@')[0]
+                    
+                    return (
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-2">Selected Reviewer:</h4>
+                        <div className="text-sm space-y-1">
+                          <div><span className="font-medium">Name:</span> {reviewerName}</div>
+                          <div><span className="font-medium">Email:</span> {reviewer.email}</div>
+                          {reviewer.position && (
+                            <div><span className="font-medium">Position:</span> {reviewer.position}</div>
+                          )}
+                          {reviewer.department && (
+                            <div><span className="font-medium">Department:</span> {reviewer.department}</div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
             </div>
           )}
         </div>

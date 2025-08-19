@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import ProcessingModal from './ProcessingModal'
+import StepIndicator from './StepIndicator.jsx'
 
 const Results = ({ 
   results, 
@@ -162,6 +163,9 @@ const Results = ({
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
+        {/* Step Indicator */}
+        <StepIndicator currentStep={3} />
+        
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Processing Complete!</h1>
