@@ -165,6 +165,7 @@ const StudentDashboard = () => {
 
   // Submit new application handler
   const handleSubmitNewApplication = () => {
+    // Clear form data and go back to upload
     setFormData({ document: null, trainingType: '' })
     setResults(null)
     setError(null)
@@ -240,8 +241,8 @@ const StudentDashboard = () => {
             fileInputRef={fileInputRef}
             onFileSelect={handleFileSelect}
             onInputChange={handleInputChange}
-            onContinueProcessing={handleUploadCertificate}
             onBackToDashboard={handleBackToDashboard}
+            onContinueProcessing={handleUploadCertificate}
             error={error}
           />
         )
@@ -264,6 +265,7 @@ const StudentDashboard = () => {
             onBackToDashboard={handleBackToDashboard}
             onSendForApproval={handleSendForApproval}
             onRequestReview={handleRequestReview}
+            onSubmitNewApplication={handleSubmitNewApplication}
           />
         )
       
