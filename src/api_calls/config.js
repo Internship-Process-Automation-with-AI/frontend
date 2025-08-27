@@ -47,7 +47,7 @@ export const API_ENDPOINTS = {
 }
 
 // Request timeout in milliseconds
-export const REQUEST_TIMEOUT = 30000 // 30 seconds
+export const REQUEST_TIMEOUT = 300000 // 5 minutes
 
 // Helper function to build full URL
 export const buildUrl = endpoint => {
