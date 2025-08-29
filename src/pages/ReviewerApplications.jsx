@@ -33,6 +33,10 @@ function ReviewerApplications() {
     message: ''
   })
 
+  // Justification modal state
+  const [showJustificationModal, setShowJustificationModal] = useState(false)
+  const [justificationText, setJustificationText] = useState('')
+
   // Fetch reviewer data
   useEffect(() => {
     const fetchReviewerData = async () => {
@@ -164,6 +168,192 @@ function ReviewerApplications() {
     navigate('/reviewer/portal', { state: { reviewerId } })
   }
 
+  const handleViewJustification = () => {
+    const justification = application.decision.company_validation_justification || 'No justification available.'
+    
+    // Try to parse JSON and convert to markdown format
+    try {
+      if (justification !== 'No justification available.') {
+        console.log('Raw justification:', justification)
+        const jsonData = JSON.parse(justification)
+        console.log('Parsed JSON:', jsonData)
+        const markdownText = convertJsonToMarkdown(jsonData)
+        console.log('Generated markdown:', markdownText)
+        setJustificationText(markdownText)
+      } else {
+        setJustificationText(justification)
+      }
+    } catch (error) {
+      console.error('JSON parsing error:', error)
+      // If not valid JSON, display as plain text
+      setJustificationText(justification)
+    }
+    setShowJustificationModal(true)
+  }
+
+  const convertJsonToMarkdown = (jsonData) => {
+    let markdown = ''
+    
+    // Handle arrays at the top level
+    if (Array.isArray(jsonData)) {
+      jsonData.forEach((item, index) => {
+        markdown += `## COMPANY\n\n`
+        markdown += processObject(item, 0)
+        if (index < jsonData.length - 1) {
+          markdown += '\n---\n\n'
+        }
+      })
+    } else {
+      markdown = processObject(jsonData, 0)
+    }
+    
+    return markdown
+    
+    function processObject(obj, level = 0) {
+      let result = ''
+      const keys = Object.keys(obj)
+      
+      keys.forEach((key, index) => {
+        const value = obj[key]
+        const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        
+        if (value === null || value === undefined) {
+          result += `- ${formattedKey}: N/A\n`
+        } else if (typeof value === 'object' && !Array.isArray(value)) {
+          result += `- ${formattedKey}:\n`
+          result += processObject(value, level + 1)
+        } else if (Array.isArray(value)) {
+          result += `- ${formattedKey}:\n`
+          value.forEach((item, index) => {
+            if (typeof item === 'object') {
+              result += `  ${index + 1}. \n`
+              result += processObject(item, level + 2)
+            } else {
+              result += `  ${index + 1}. ${item}\n`
+            }
+          })
+        } else {
+          // Handle long text values with better formatting
+          if (typeof value === 'string' && value.length > 100) {
+            result += `- ${formattedKey}:\n  ${value}\n`
+          } else {
+            result += `- ${formattedKey}: ${value}\n`
+          }
+        }
+        
+        // Add extra spacing between fields for better readability
+        if (index < keys.length - 1) {
+          result += '\n'
+        }
+      })
+      
+      return result
+    }
+  }
+
+  const renderFormattedContent = (text) => {
+    if (!text) return null
+    
+    // Split the text into lines
+    const lines = text.split('\n')
+    
+    // Group lines by company sections
+    const companies = []
+    let currentCompany = []
+    let currentCompanyName = ''
+    
+         lines.forEach((line, index) => {
+       if (line.startsWith('## COMPANY')) {
+         if (currentCompany.length > 0) {
+           companies.push({
+             name: currentCompanyName,
+             lines: currentCompany
+           })
+         }
+         currentCompanyName = line.replace('## COMPANY', '')
+         currentCompany = []
+       } else {
+         currentCompany.push({ line, index })
+       }
+     })
+    
+    // Add the last company
+    if (currentCompany.length > 0) {
+      companies.push({
+        name: currentCompanyName,
+        lines: currentCompany
+      })
+    }
+    
+    // Render each company in its own box
+    return companies.map((company, companyIndex) => (
+      <div key={companyIndex} className="mb-8">
+        {company.name && (
+          <h2 key={`header-${companyIndex}`} className="text-2xl font-bold text-gray-900 mb-4 mt-6 first:mt-0 border-b-2 border-blue-200 pb-2">
+            {company.name}
+          </h2>
+        )}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+          {company.lines.map(({ line, index }) => {
+                         // Handle bullet points with labels
+             if (line.startsWith('- ') && line.includes(':')) {
+               const colonIndex = line.indexOf(':')
+               const labelText = line.substring(2, colonIndex) // Remove '- ' and get text before first colon
+               const valueText = line.substring(colonIndex + 1).trim() // Get everything after first colon
+               
+               if (valueText.length > 100) {
+                 return (
+                   <div key={index} className="mb-4">
+                     <div className="font-semibold text-gray-800 mb-2 text-lg">{labelText}</div>
+                     <div className="text-gray-700 leading-relaxed pl-4">{valueText}</div>
+                   </div>
+                 )
+               } else {
+                 return (
+                   <div key={index} className="mb-3 flex items-start">
+                     <span className="text-blue-500 mr-2 mt-1">•</span>
+                     <div>
+                       <span className="font-semibold text-gray-800">{labelText}: </span>
+                       <span className="text-gray-700">{valueText}</span>
+                     </div>
+                   </div>
+                 )
+               }
+             }
+            
+            // Handle numbered lists
+            if (line.match(/^\s*\d+\.\s/)) {
+              const content = line.replace(/^\s*\d+\.\s/, '')
+              return (
+                <div key={index} className="ml-6 mb-2 flex items-start">
+                  <span className="text-blue-500 mr-2 mt-1 text-sm">◦</span>
+                  <span className="text-gray-700">{content}</span>
+                </div>
+              )
+            }
+            
+            // Handle horizontal rules
+            if (line.trim() === '---') {
+              return <hr key={index} className="my-6 border-gray-300" />
+            }
+            
+            // Handle empty lines
+            if (line.trim() === '') {
+              return <div key={index} className="h-2"></div>
+            }
+            
+            // Handle regular text
+            return (
+              <div key={index} className="text-gray-700 leading-relaxed">
+                {line}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    ))
+     }
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'PASS':
@@ -221,6 +411,41 @@ function ReviewerApplications() {
           title={modalConfig.title}
           message={modalConfig.message}
         />
+        
+                 {/* Justification Modal */}
+         {showJustificationModal && (
+           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+             <div className="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+               <div className="flex items-center justify-between mb-6">
+                 <div>
+                   <h3 className="text-2xl font-bold text-gray-900">Training Institution Validation</h3>
+                   <p className="text-gray-600 mt-1">Detailed analysis and justification</p>
+                 </div>
+                 <button
+                   onClick={() => setShowJustificationModal(false)}
+                   className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                 >
+                   <XCircleIcon className="w-6 h-6" />
+                 </button>
+               </div>
+               
+               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 max-h-[60vh] overflow-y-auto">
+                 <div className="prose prose-lg max-w-none">
+                   {renderFormattedContent(justificationText)}
+                 </div>
+               </div>
+               
+               <div className="mt-6 flex justify-end">
+                 <button
+                   onClick={() => setShowJustificationModal(false)}
+                   className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                 >
+                   Close
+                 </button>
+               </div>
+             </div>
+           </div>
+         )}
         <div className="max-w-4xl mx-auto px-4 py-8">
 
         {/* Applications Section */}
@@ -349,6 +574,24 @@ function ReviewerApplications() {
                     <p className="text-gray-800 font-medium mt-1">{application.decision.training_institution}</p>
                   </div>
                 )}
+
+                {/* Training Institution Validation */}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Training Institution Validation</label>
+                  <div className="flex items-center space-x-3 mt-1">
+                    <p className="text-gray-800 font-medium">
+                      {application.decision.company_validation_status || 'Not available'}
+                    </p>
+                    {application.decision.company_validation_justification && (
+                      <button
+                        onClick={handleViewJustification}
+                        className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+                      >
+                        View Justification
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Degree Relevance */}
