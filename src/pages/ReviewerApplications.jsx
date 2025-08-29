@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Header from '../components/common/Header.jsx'
 import MessageModal from '../components/common/MessageModal.jsx'
 import { getCertificateDetails, submitCertificateReview, downloadCertificate, getReviewerByEmail } from '../api_calls/reviewerApi.js'
+import { buildUrl, API_ENDPOINTS } from '../api_calls/config.js'
 import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, DownloadIcon, UserIcon, ClockIcon, AlertCircleIcon } from '../components/common/Icons.jsx'
 
 function ReviewerApplications() {
@@ -36,6 +37,11 @@ function ReviewerApplications() {
   // Justification modal state
   const [showJustificationModal, setShowJustificationModal] = useState(false)
   const [justificationText, setJustificationText] = useState('')
+
+  // Document viewer modal state
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [documentUrl, setDocumentUrl] = useState('')
+  const [documentLoading, setDocumentLoading] = useState(false)
 
   // Fetch reviewer data
   useEffect(() => {
@@ -189,6 +195,22 @@ function ReviewerApplications() {
       setJustificationText(justification)
     }
     setShowJustificationModal(true)
+  }
+
+  const handleViewDocument = async () => {
+    setDocumentLoading(true)
+    setShowDocumentModal(true)
+    
+    try {
+      // Get the document URL for preview
+      const url = buildUrl(API_ENDPOINTS.CERTIFICATE_PREVIEW(certificateId))
+      setDocumentUrl(url)
+    } catch (error) {
+      console.error('Error loading document:', error)
+      setError('Failed to load document preview')
+    } finally {
+      setDocumentLoading(false)
+    }
   }
 
   const convertJsonToMarkdown = (jsonData) => {
@@ -445,8 +467,69 @@ function ReviewerApplications() {
                </div>
              </div>
            </div>
-         )}
-        <div className="max-w-4xl mx-auto px-4 py-8">
+                   )}
+
+          {/* Document Viewer Modal */}
+          {showDocumentModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl shadow-2xl p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Document Viewer</h3>
+                    <p className="text-gray-600 mt-1">{application?.certificate?.filename || 'Certificate Document'}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowDocumentModal(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                  >
+                    <XCircleIcon className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="bg-gray-100 rounded-lg border border-gray-200 flex-1 overflow-hidden">
+                  {documentLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading document...</p>
+                      </div>
+                    </div>
+                  ) : documentUrl ? (
+                    <iframe
+                      src={documentUrl}
+                      className="w-full h-[70vh] border-0"
+                      title="Document Preview"
+                      onLoad={() => setDocumentLoading(false)}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-center">
+                        <AlertCircleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                        <p className="text-gray-600">Failed to load document</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-4 flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowDocumentModal(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+                  >
+                    <DownloadIcon className="w-4 h-4" />
+                    <span>Download</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+         <div className="max-w-4xl mx-auto px-4 py-8">
 
         {/* Applications Section */}
         <div className="card p-6">
@@ -508,15 +591,18 @@ function ReviewerApplications() {
                 <p className="text-gray-800">{formatDate(application.certificate.uploaded_at)}</p>
               </div>
             </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleDownload}
-                className="flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-              >
-                <DownloadIcon className="w-4 h-4" />
-                <span>Download</span>
-              </button>
-            </div>
+                                                   <div className="flex space-x-3">
+                <button
+                  onClick={handleViewDocument}
+                  className="flex items-center space-x-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span>View</span>
+                </button>
+              </div>
           </div>
 
           {/* AI Decision */}
