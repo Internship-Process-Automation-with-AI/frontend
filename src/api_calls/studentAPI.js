@@ -177,7 +177,7 @@ export async function getStudentApplications (email) {
  * @returns {Promise<Object>} Upload result
  * @throws {Error} If request fails
  */
-export async function uploadCertificate (studentId, file, trainingType) {
+export async function uploadCertificate (studentId, file, trainingType, workType = 'REGULAR', additionalDocuments = []) {
   const requestId = requestInterceptor.generateRequestId()
   const request = {
     id: requestId,
@@ -194,6 +194,14 @@ export async function uploadCertificate (studentId, file, trainingType) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('training_type', trainingType)
+    formData.append('work_type', workType)
+    
+    // Add additional documents for self-paced work
+    if (workType === 'SELF_PACED' && additionalDocuments && additionalDocuments.length > 0) {
+      additionalDocuments.forEach(doc => {
+        formData.append('additional_documents', doc)
+      })
+    }
 
     requestInterceptor.updateRequest(requestId, { progress: 25 })
 

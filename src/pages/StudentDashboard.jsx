@@ -27,10 +27,16 @@ const StudentDashboard = () => {
   
   // Refs
   const fileInputRef = useRef(null)
+  const additionalDocsRef = useRef(null)
   
   // State management
   const [currentView, setCurrentView] = useState('dashboard')
-  const [formData, setFormData] = useState({ document: null, trainingType: '' })
+  const [formData, setFormData] = useState({ 
+    document: null, 
+    trainingType: '',
+    isSelfPaced: false,
+    additionalDocuments: []
+  })
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -70,6 +76,30 @@ const StudentDashboard = () => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  // Handle additional documents select
+  const handleAdditionalDocsSelect = (e) => {
+    console.log('handleAdditionalDocsSelect called')
+    console.log('Files selected:', e.target.files)
+    
+    const files = Array.from(e.target.files)
+    console.log('Files array:', files)
+    
+    if (files.length > 0) {
+      setFormData(prev => {
+        const newAdditionalDocuments = [...(prev.additionalDocuments || []), ...files]
+        console.log('Previous additionalDocuments:', prev.additionalDocuments)
+        console.log('New additionalDocuments:', newAdditionalDocuments)
+        
+        return { 
+          ...prev, 
+          additionalDocuments: newAdditionalDocuments
+        }
+      })
+    }
+    // Reset the input so the same file can be selected again
+    e.target.value = ''
+  }
+
   // Upload certificate handler
   const handleUploadCertificate = () => {
     if (!formData.document) {
@@ -105,7 +135,9 @@ const StudentDashboard = () => {
       const uploadResult = await uploadCertificate(
         studentData.student_id,
         formData.document,
-        formData.trainingType
+        formData.trainingType,
+        formData.isSelfPaced ? 'SELF_PACED' : 'REGULAR',
+        formData.additionalDocuments || []
       )
       
       console.log('Upload result:', uploadResult)
@@ -181,7 +213,12 @@ const StudentDashboard = () => {
   // Submit new application handler
   const handleSubmitNewApplication = () => {
     // Clear form data and go back to upload
-    setFormData({ document: null, trainingType: '' })
+    setFormData({ 
+      document: null, 
+      trainingType: '',
+      isSelfPaced: false,
+      additionalDocuments: []
+    })
     setResults(null)
     setError(null)
     setCurrentView('upload')
@@ -314,8 +351,10 @@ const StudentDashboard = () => {
           <UploadCertificate
             formData={formData}
             fileInputRef={fileInputRef}
+            additionalDocsRef={additionalDocsRef}
             onFileSelect={handleFileSelect}
             onInputChange={handleInputChange}
+            onAdditionalDocsSelect={handleAdditionalDocsSelect}
             onBackToDashboard={handleBackToDashboard}
             onContinueProcessing={handleUploadCertificate}
             error={error}

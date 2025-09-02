@@ -22,7 +22,12 @@ function App() {
   const [currentView, setCurrentView] = useState('email-entry')
   const [studentEmail, setStudentEmail] = useState('')
   const [studentData, setStudentData] = useState(null)
-  const [formData, setFormData] = useState({ document: null, trainingType: '' })
+  const [formData, setFormData] = useState({
+    document: null,
+    trainingType: '',
+    isSelfPaced: false,
+    additionalDocuments: []
+  })
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -40,6 +45,7 @@ function App() {
   
   // Refs
   const fileInputRef = useRef(null)
+  const additionalDocsRef = useRef(null)
   
   // Email submission handler
   const handleEmailSubmit = async () => {
@@ -122,6 +128,8 @@ function App() {
       const formDataToSend = new FormData()
       formDataToSend.append('file', formData.document)
       formDataToSend.append('training_type', formData.trainingType)
+      formDataToSend.append('is_self_paced', formData.isSelfPaced ? 'true' : 'false')
+      formDataToSend.append('additional_documents', JSON.stringify(formData.additionalDocuments))
       
       const uploadResponse = await fetch(`http://localhost:8000/student/${studentData.student_id}/upload-certificate`, {
         method: 'POST',
@@ -253,7 +261,7 @@ function App() {
   // Submit new application handler
   const handleSubmitNewApplication = () => {
     // Clear form data and go back to upload
-    setFormData({ document: null, trainingType: '' })
+    setFormData({ document: null, trainingType: '', isSelfPaced: false, additionalDocuments: [] })
     setResults(null)
     setCurrentView('upload')
   }
@@ -285,7 +293,7 @@ function App() {
 
   const handleBackToDashboard = async (targetView = 'dashboard') => {
     setCurrentView(targetView)
-    setFormData({ document: null, trainingType: '' })
+    setFormData({ document: null, trainingType: '', isSelfPaced: false, additionalDocuments: [] })
     setError(null)
     setResults(null)
     setUserFeedback('')
@@ -360,12 +368,36 @@ function App() {
     setCurrentView('email-entry')
     setStudentEmail('')
     setStudentData(null)
-    setFormData({ document: null, trainingType: '' })
+    setFormData({ document: null, trainingType: '', isSelfPaced: false, additionalDocuments: [] })
     setResults(null)
     setError(null)
     setUserFeedback('')
     setApplications([])
     setCertificateId(null)
+  }
+
+  // Handle additional documents select
+  const handleAdditionalDocsSelect = (e) => {
+    console.log('handleAdditionalDocsSelect called')
+    console.log('Files selected:', e.target.files)
+    
+    const files = Array.from(e.target.files)
+    console.log('Files array:', files)
+    
+    if (files.length > 0) {
+      setFormData(prev => {
+        const newAdditionalDocuments = [...(prev.additionalDocuments || []), ...files]
+        console.log('Previous additionalDocuments:', prev.additionalDocuments)
+        console.log('New additionalDocuments:', newAdditionalDocuments)
+        
+        return { 
+          ...prev, 
+          additionalDocuments: newAdditionalDocuments
+        }
+      })
+    }
+    // Reset the input so the same file can be selected again
+    e.target.value = ''
   }
 
   // Render current view
@@ -398,8 +430,10 @@ function App() {
           <UploadCertificate
             formData={formData}
             fileInputRef={fileInputRef}
+            additionalDocsRef={additionalDocsRef}
             onFileSelect={handleFileSelect}
             onInputChange={handleInputChange}
+            onAdditionalDocsSelect={handleAdditionalDocsSelect}
             onBackToDashboard={handleBackToDashboard}
             onContinueProcessing={handleUploadCertificate}
           />

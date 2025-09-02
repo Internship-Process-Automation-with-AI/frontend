@@ -1,15 +1,26 @@
 import { UploadIcon, FileTextIcon, XIcon, RefreshCwIcon } from '../common/Icons.jsx'
 import Header from '../common/Header.jsx'
 import StepIndicator from './StepIndicator.jsx'
+import { useRef } from 'react'
 
 const UploadCertificate = ({ 
   formData, 
   fileInputRef, 
   onFileSelect, 
   onInputChange, 
+  onAdditionalDocsSelect,
   onBackToDashboard, 
   onContinueProcessing 
 }) => {
+  // Create a local ref for additional documents
+  const localAdditionalDocsRef = useRef(null)
+
+  const handleAdditionalDocsClick = () => {
+    if (localAdditionalDocsRef?.current) {
+      localAdditionalDocsRef.current.click()
+    }
+  }
+
   const handleReplaceFile = () => {
     fileInputRef.current?.click()
   }
@@ -135,6 +146,111 @@ const UploadCertificate = ({
                     </div>
                   </div>
                 </label>
+              </div>
+            </div>
+            
+            {/* Self-Paced Work Section */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Work Schedule
+              </label>
+              <div className="space-y-3">
+                <label className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-oamk-orange-300 cursor-pointer transition-colors duration-200">
+                  <input
+                    type="checkbox"
+                    checked={formData.isSelfPaced || false}
+                    onChange={(e) => onInputChange('isSelfPaced', e.target.checked)}
+                    className="mr-3 text-oamk-orange-500 focus:ring-oamk-orange-500"
+                  />
+                  <div>
+                    <div className="font-medium text-gray-800">Self-Paced Work</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Check this if your work was done on a flexible schedule or as a project-based assignment
+                    </div>
+                  </div>
+                </label>
+                
+                {/* Additional Documents Upload - only show if self-paced is checked */}
+                {formData.isSelfPaced && (
+                  <div className="ml-6 mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-2">
+                      Additional Documentation
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Upload documents showing your working hours
+                    </p>
+                    
+                    <div className="border border-dashed border-gray-200 rounded-md p-3 bg-gray-50 hover:border-gray-300 hover:bg-gray-100 transition-colors duration-200">
+                      {!formData.additionalDocuments || formData.additionalDocuments.length === 0 ? (
+                        <div className="text-center">
+                          <UploadIcon className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                          <p className="text-xs text-gray-500 mb-2">Click to upload files</p>
+                          <button
+                            onClick={() => localAdditionalDocsRef?.current?.click()}
+                            className="px-3 py-1 text-xs bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                          >
+                            Select Files
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {formData.additionalDocuments.map((doc, index) => (
+                            <div key={index} className="flex items-center justify-between bg-white rounded border border-gray-200 p-2">
+                              <div className="flex items-center">
+                                <FileTextIcon className="w-4 h-4 text-gray-500 mr-2" />
+                                <div>
+                                  <p className="text-xs font-medium text-gray-700 truncate max-w-32">{doc.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {(doc.size / 1024 / 1024).toFixed(1)} MB
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={() => localAdditionalDocsRef?.current?.click()}
+                                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors duration-200"
+                                  title="Add more files"
+                                >
+                                  <RefreshCwIcon className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const newDocs = formData.additionalDocuments.filter((_, i) => i !== index)
+                                    onInputChange('additionalDocuments', newDocs)
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors duration-200"
+                                  title="Delete file"
+                                >
+                                  <XIcon className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {/* Add more files button */}
+                          <div className="pt-2 border-t border-gray-200">
+                            <button
+                              onClick={() => localAdditionalDocsRef?.current?.click()}
+                              className="w-full px-2 py-1 text-xs bg-white border border-gray-300 text-gray-600 rounded hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                            >
+                              <UploadIcon className="w-3 h-3 mr-1 inline" />
+                              Add More Files
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <input
+                        ref={localAdditionalDocsRef}
+                        type="file"
+                        multiple
+                        onChange={onAdditionalDocsSelect}
+                        accept=".pdf,.docx,.doc,.png,.jpg,.jpeg"
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
