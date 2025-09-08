@@ -2,6 +2,7 @@ import { UploadIcon, FileTextIcon, XIcon, RefreshCwIcon } from '../common/Icons.
 import Header from '../common/Header.jsx'
 import StepIndicator from './StepIndicator.jsx'
 import { useRef } from 'react'
+import React from 'react'
 
 const UploadCertificate = ({ 
   formData, 
@@ -21,6 +22,8 @@ const UploadCertificate = ({
     }
   }
 
+  const [isDragOver, setIsDragOver] = React.useState(false)
+
   const handleReplaceFile = () => {
     fileInputRef.current?.click()
   }
@@ -29,6 +32,82 @@ const UploadCertificate = ({
     onInputChange('document', null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+  }
+
+  const handleBackToDashboard = () => {
+    try {
+      if (typeof onBackToDashboard === 'function') {
+        // Reset form data when going back
+        onInputChange('document', null)
+        onInputChange('trainingType', '')
+        
+        // Navigate back to dashboard
+        onBackToDashboard('dashboard')
+        console.log('Successfully called onBackToDashboard')
+      } else {
+        console.error('onBackToDashboard is not a function:', onBackToDashboard)
+        // Fallback: try to navigate using window.location if function is not available
+        alert('Function not available, trying alternative navigation')
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Error in handleBackToDashboard:', error)
+      alert('Error occurred: ' + error.message)
+    }
+  }
+
+  // Drag and drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragEnter = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set drag over to false if we're leaving the drop zone entirely
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      
+      // Check file type
+      const allowedTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'image/png',
+        'image/jpeg',
+        'image/jpg'
+      ]
+      
+      if (allowedTypes.includes(file.type)) {
+        // Create a synthetic event object similar to file input change event
+        const syntheticEvent = {
+          target: {
+            files: [file]
+          }
+        }
+        onFileSelect(syntheticEvent)
+      } else {
+        alert('Please select a valid file type: PDF, DOCX, DOC, PNG, JPG, or JPEG')
+      }
     }
   }
 
@@ -50,15 +129,31 @@ const UploadCertificate = ({
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Work Certificate Document
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-oamk-orange-400 transition-colors duration-200">
+              <div 
+                className={`border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-oamk-orange-400 transition-colors duration-200 ${isDragOver ? 'border-oamk-orange-400 bg-oamk-orange-50' : ''}`}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 {!formData.document ? (
                   <div className="text-center">
                     <UploadIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">Drag and drop your file here, or click to browse</p>
-                    <p className="text-sm text-gray-500 mb-4">Supports PDF, DOCX, and image files</p>
+                    {isDragOver ? (
+                      <>
+                        <p className="text-oamk-orange-600 mb-2 font-semibold">Drop your file here!</p>
+                        <p className="text-sm text-oamk-orange-500 mb-4">Release to upload your certificate</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-600 mb-2">Drag and drop your file here, or click to browse</p>
+                        <p className="text-sm text-gray-500 mb-4">Supports PDF, DOCX, and image files</p>
+                      </>
+                    )}
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="btn-primary"
+                      disabled={isDragOver}
                     >
                       Select File
                     </button>
@@ -258,8 +353,9 @@ const UploadCertificate = ({
           {/* Action Buttons */}
           <div className="flex justify-between mt-8">
             <button
-              onClick={() => onBackToDashboard('dashboard')}
-              className="btn-secondary"
+              onClick={handleBackToDashboard}
+              className="btn-secondary relative z-10 cursor-pointer"
+              style={{ pointerEvents: 'auto' }}
             >
               Back to Dashboard
             </button>

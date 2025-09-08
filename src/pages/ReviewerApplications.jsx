@@ -880,14 +880,14 @@ function ReviewerApplications() {
           )}
 
           {/* AI Decision */}
-          <div className="card p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">AI Analysis</h2>
+          <div className="card p-6 mb-6 shadow-lg border border-gray-200 rounded-xl">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">AI Analysis</h2>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <label className="text-sm font-medium text-gray-600">AI Decision:</label>
+                <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">AI Decision</label>
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(application.decision.ai_decision)}
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold shadow-sm ${
                     application.decision.ai_decision === 'ACCEPTED' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
@@ -900,9 +900,9 @@ function ReviewerApplications() {
               {/* Credits Awarded */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Credits Awarded</label>
-                  <p className={`font-semibold mt-1 text-lg ${
-                    application.decision.credits_awarded > 0 ? 'text-green-600' : 'text-gray-600'
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Credits Awarded</label>
+                  <p className={`font-bold mt-1 text-2xl ${
+                    application.decision.credits_awarded > 0 ? 'text-green-700' : 'text-gray-700'
                   }`}>
                     {application.decision.credits_awarded} ECTS
                   </p>
@@ -910,8 +910,8 @@ function ReviewerApplications() {
 
                 {/* Total Working Hours */}
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Total Working Hours</label>
-                  <p className="text-gray-800 font-medium mt-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Working Hours</label>
+                  <p className="text-gray-900 font-semibold mt-1 text-lg">
                     {application.decision.total_working_hours 
                       ? `${application.decision.total_working_hours} hours`
                       : 'Not available'
@@ -922,30 +922,30 @@ function ReviewerApplications() {
                 {/* Training Duration */}
                 {application.decision.training_duration && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Training Duration</label>
-                    <p className="text-gray-800 font-medium mt-1">{application.decision.training_duration}</p>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Training Duration</label>
+                    <p className="text-gray-900 font-semibold mt-1">{application.decision.training_duration}</p>
                   </div>
                 )}
 
                 {/* Training Institution */}
                 {application.decision.training_institution && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Training Institution</label>
-                    <p className="text-gray-800 font-medium mt-1">{application.decision.training_institution}</p>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Training Institution</label>
+                    <p className="text-gray-900 font-semibold mt-1">{application.decision.training_institution}</p>
                   </div>
                 )}
 
                 {/* Training Institution Validation */}
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Training Institution Validation</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Training Institution Validation</label>
                   <div className="flex items-center space-x-3 mt-1">
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-gray-900 font-semibold">
                       {application.decision.company_validation_status || 'Not available'}
                     </p>
                     {application.decision.company_validation_justification && (
                       <button
                         onClick={handleViewJustification}
-                        className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+                        className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 transition-colors shadow-sm"
                       >
                         View Justification
                       </button>
@@ -957,54 +957,70 @@ function ReviewerApplications() {
               {/* Degree Relevance */}
               {application.decision.degree_relevance && (
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Degree Relevance</label>
-                    <p className="text-gray-800 font-medium mt-1">{application.decision.degree_relevance}</p>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Degree Relevance</label>
+                  <p className="text-gray-900 font-semibold mt-1">{application.decision.degree_relevance}</p>
                 </div>
               )}
 
-              {/* Credit Calculation */}
-              {/* {application.decision.total_working_hours && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Credit Calculation</label>
-                  <div className="bg-gray-50 p-3 rounded-lg mt-1 space-y-1">
-                    <p className="text-gray-800">
-                      Total Working Hours: {application.decision.total_working_hours} hours
-                    </p>
-                    <p className="text-gray-800">
-                      Calculated Credits: {Math.floor(application.decision.total_working_hours / 27)} ECTS
-                      <span className="text-gray-500 text-sm ml-2">(1 ECTS = 27 hours)</span>
-                    </p>
-                    <p className="text-gray-700 text-sm">
-                      AI Awarded: {application.decision.credits_awarded || 0} ECTS
-                    </p>
+              {/* Student Name Validation */}
+              {application.decision.name_validation && (
+                <div className="mt-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Student Name Validation</label>
+                  <div className="flex items-center space-x-3 mt-1">
+                    {(() => {
+                      const result = application.decision.name_validation?.match_result || 'unknown'
+                      const badgeClass =
+                        result === 'match'
+                          ? 'bg-green-100 text-green-800'
+                          : result === 'partial_match'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : result === 'mismatch'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                      const label = result.replace('_', ' ').toUpperCase()
+                      return (
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold shadow-sm ${badgeClass}`}>
+                          {label}
+                        </span>
+                      )
+                    })()}
                   </div>
+                  {application.decision.name_validation?.explanation && (
+                    <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {application.decision.name_validation.explanation}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )} */}
+              )}
 
               {/* AI Justification */}
               {application.decision.ai_justification && (
                 <div>
-                  <label className="text-sm font-medium text-gray-600">AI Justification</label>
-                  <p className="text-gray-800 bg-gray-50 p-3 rounded-lg mt-1">
-                    {application.decision.ai_justification}
-                  </p>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">AI Justification</label>
+                  <div className="mt-2 p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                      {application.decision.ai_justification}
+                    </p>
+                  </div>
                 </div>
               )}
 
               {/* Supporting and Challenging Evidence - Always show */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Supporting Evidence</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Supporting Evidence</label>
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-1">
-                    <p className="text-green-800">
+                    <p className="text-green-900">
                       {application.decision.supporting_evidence || 'No supporting evidence available.'}
                     </p>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Challenging Evidence</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Challenging Evidence</label>
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-1">
-                    <p className="text-red-800">
+                    <p className="text-red-900">
                       {application.decision.challenging_evidence || 'No challenging evidence available.'}
                     </p>
                   </div>
@@ -1014,13 +1030,13 @@ function ReviewerApplications() {
               {/* Recommendation for Rejected Cases */}
               {application.decision.ai_decision === 'REJECTED' && application.decision.recommendation && (
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Recommendation</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recommendation</label>
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-1">
                     <div className="flex items-start space-x-2">
                       <AlertCircleIcon className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                        <p className="text-orange-800 font-medium mb-1">Suggested Actions:</p>
-                        <p className="text-orange-700">{application.decision.recommendation}</p>
+                      <div>
+                        <p className="text-orange-900 font-medium mb-1">Suggested Actions:</p>
+                        <p className="text-orange-800 leading-relaxed">{application.decision.recommendation}</p>
                       </div>
                     </div>
                   </div>

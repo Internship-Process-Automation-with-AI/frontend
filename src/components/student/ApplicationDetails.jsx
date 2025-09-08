@@ -311,6 +311,18 @@ const ApplicationDetails = ({ application, onBackToApplications, onRequestReview
               </div>
             </div>
 
+            {/* AI Justification */}
+            {application.ai_justification && (
+              <div className="mt-6">
+                <label className="text-sm font-medium text-gray-600">AI Justification</label>
+                <div className="mt-2 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-gray-800 whitespace-pre-wrap">
+                    {application.ai_justification}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Evidence Section */}
               <div className="mt-6 space-y-4">
                   <div>
