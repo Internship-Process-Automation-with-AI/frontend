@@ -438,6 +438,43 @@ export async function previewCertificate (certificateId) {
 }
 
 /**
+ * Preview additional document file
+ *
+ * @param {string} certificateId - Certificate's UUID
+ * @param {string} documentId - Additional document's UUID
+ * @returns {Promise<string>} Preview URL
+ * @throws {Error} If request fails
+ */
+export async function previewAdditionalDocument (certificateId, documentId) {
+  const requestId = requestInterceptor.generateRequestId()
+  const request = {
+    id: requestId,
+    type: 'preview_additional_document',
+    progress: 0,
+    startTime: Date.now()
+  }
+
+  requestInterceptor.addRequest(request)
+
+  try {
+    requestInterceptor.updateRequest(requestId, { progress: 25 })
+
+    // For preview, we'll return the direct URL instead of fetching the blob
+    // This allows the iframe to load the content directly
+    const previewUrl = buildUrl(API_ENDPOINTS.ADDITIONAL_DOCUMENT_PREVIEW(certificateId, documentId))
+
+    requestInterceptor.updateRequest(requestId, { progress: 100 })
+    requestInterceptor.removeRequest(requestId)
+
+    return previewUrl
+  } catch (error) {
+    requestInterceptor.removeRequest(requestId)
+    console.error('Error previewing additional document:', error)
+    throw error
+  }
+}
+
+/**
  * Add student feedback to a certificate decision
  *
  * @param {string} certificateId - Certificate's UUID
