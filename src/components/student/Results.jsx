@@ -61,6 +61,45 @@ const Results = ({
     return String(value)
   }
 
+  // Helper function to format justification text
+  const formatJustification = (justification) => {
+    if (!justification) return 'No justification available.'
+    
+    // If it's already a string, return it
+    if (typeof justification === 'string') {
+      return justification
+    }
+    
+    // If it's an object (structured data), format it nicely
+    if (typeof justification === 'object') {
+      const parts = []
+      
+      if (justification.hour_verification_documents) {
+        parts.push(`Hour verification documents: ${Array.isArray(justification.hour_verification_documents) ? justification.hour_verification_documents.join(', ') : justification.hour_verification_documents}`)
+      }
+      
+      if (justification.specific_hour_information) {
+        parts.push(`Specific hour information: ${justification.specific_hour_information}`)
+      }
+      
+      if (justification.hour_calculation) {
+        parts.push(`Hour calculation: ${justification.hour_calculation}`)
+      }
+      
+      if (justification.discrepancies) {
+        parts.push(`Discrepancies: ${justification.discrepancies}`)
+      }
+      
+      if (justification.reason_for_additional_document) {
+        parts.push(`Reason for additional document: ${justification.reason_for_additional_document}`)
+      }
+      
+      return parts.join('\n\n')
+    }
+    
+    return String(justification)
+  }
+
   if (!results) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -245,9 +284,9 @@ const Results = ({
           <div className="mt-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-blue-800 mb-2">Justification</h4>
-              <p className="text-blue-700 text-sm leading-relaxed">
-                {safeRender(justification)}
-              </p>
+              <div className="text-blue-700 text-sm leading-relaxed whitespace-pre-line">
+                {formatJustification(justification)}
+              </div>
             </div>
           </div>
         </div>
