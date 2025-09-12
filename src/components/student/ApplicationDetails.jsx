@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { previewCertificate, downloadAndSaveCertificate } from '../../api_calls/studentAPI.js'
+import { previewCertificate, downloadAndSaveCertificate, previewAdditionalDocument } from '../../api_calls/studentAPI.js'
 import PreviewModal from '../common/PreviewModal.jsx'
 import { 
   ClockIcon, 
@@ -16,6 +16,12 @@ const ApplicationDetails = ({ application, onBackToApplications, onRequestReview
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  
+  // Additional document preview state
+  const [additionalPreviewUrl, setAdditionalPreviewUrl] = useState(null)
+  const [isAdditionalPreviewOpen, setIsAdditionalPreviewOpen] = useState(false)
+  const [additionalPreviewLoading, setAdditionalPreviewLoading] = useState(false)
+  const [currentAdditionalDocument, setCurrentAdditionalDocument] = useState(null)
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -110,6 +116,46 @@ const ApplicationDetails = ({ application, onBackToApplications, onRequestReview
     setPreviewUrl(null)
   }
 
+  const handleAdditionalDocumentPreview = async (document) => {
+    setAdditionalPreviewLoading(true)
+    setError(null)
+    setCurrentAdditionalDocument(document)
+    
+    try {
+      console.log('Preview request for additional document:', document.document_id)
+      
+      // Check if the file type can be previewed
+      const fileExtension = document.filename.split('.').pop()?.toLowerCase()
+      const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png']
+      const downloadOnlyTypes = ['docx', 'doc', 'txt', 'rtf']
+      
+      if (downloadOnlyTypes.includes(fileExtension)) {
+        setError('This file type cannot be previewed in the browser. Please download the file to view the document.')
+        return
+      }
+      
+      if (!previewableTypes.includes(fileExtension)) {
+        setError('This file type cannot be previewed in the browser. Please download the file to view it.')
+        return
+      }
+      
+      const url = await previewAdditionalDocument(application.certificate_id, document.document_id)
+      setAdditionalPreviewUrl(url)
+      setIsAdditionalPreviewOpen(true)
+    } catch (err) {
+      setError('Failed to load preview. Please try again.')
+      console.error('Additional document preview error:', err)
+    } finally {
+      setAdditionalPreviewLoading(false)
+    }
+  }
+
+  const closeAdditionalPreview = () => {
+    setIsAdditionalPreviewOpen(false)
+    setAdditionalPreviewUrl(null)
+    setCurrentAdditionalDocument(null)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="max-w-4xl mx-auto py-6 px-4">
@@ -170,6 +216,46 @@ const ApplicationDetails = ({ application, onBackToApplications, onRequestReview
               </div>
             </div>
           </div>
+
+          {/* Additional Documents Section - Only show for self-paced work */}
+          {application.additional_documents && application.additional_documents.length > 0 && (
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Additional Documents</h2>
+              <p className="text-gray-600 mb-4">
+                This application includes {application.additional_documents.length} additional document(s) for self-paced work documentation.
+              </p>
+              <div className="space-y-3">
+                {application.additional_documents.map((doc, index) => (
+                  <div key={doc.document_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{doc.filename}</p>
+                        <p className="text-sm text-gray-500">
+                          {doc.document_type} • {doc.filetype.toUpperCase()} • 
+                          Uploaded {formatDate(doc.uploaded_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={() => handleAdditionalDocumentPreview(doc)}
+                        disabled={additionalPreviewLoading}
+                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                        title="Preview document (PDF, images only)"
+                      >
+                        <EyeIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Evaluation Results */}
           <div className="card">
@@ -510,8 +596,16 @@ const ApplicationDetails = ({ application, onBackToApplications, onRequestReview
         previewUrl={previewUrl}
         filename={application?.filename}
       />
+
+      {/* Additional Document Preview Modal */}
+      <PreviewModal 
+        isOpen={isAdditionalPreviewOpen}
+        onClose={closeAdditionalPreview}
+        previewUrl={additionalPreviewUrl}
+        filename={currentAdditionalDocument?.filename}
+      />
     </div>
   )
 }
 
-export default ApplicationDetails 
+export default ApplicationDetails; 

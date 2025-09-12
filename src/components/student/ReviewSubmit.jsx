@@ -33,6 +33,29 @@ const ReviewSubmit = ({
                 </div>
               </div>
             </div>
+
+            {/* Additional Documentation Review - only show if self-paced work with additional documents */}
+            {formData.isSelfPaced && formData.additionalDocuments && formData.additionalDocuments.length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-800 mb-3">Additional Documentation</h3>
+                <div className="space-y-3">
+                  {formData.additionalDocuments.map((doc, index) => (
+                    <div key={index} className="flex items-center bg-white rounded border border-gray-200 p-3">
+                      <FileTextIcon className="w-6 h-6 text-gray-500 mr-3" />
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-800">{doc.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {(doc.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {formData.additionalDocuments.length} additional document{formData.additionalDocuments.length !== 1 ? 's' : ''} uploaded for self-paced work verification
+                </p>
+              </div>
+            )}
             
             {/* Training Type Review */}
             <div className="bg-gray-50 rounded-lg p-4">
