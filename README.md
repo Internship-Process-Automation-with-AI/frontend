@@ -81,20 +81,26 @@ A modern React web app for OAMK students and reviewers to upload, process, and r
 - **Modern React UI** with responsive design
 - **Real-time updates** and progress indicators
 - **Company validation system** with legitimacy checking
+- **Name validation system** with identity verification
 - **Rich content display** with formatted justifications
 - **Document viewing** with embedded modals
+- **Multi-language support** (Finnish/English)
 
 ### **Student-Specific Features:**
 - **Drag-and-drop certificate upload** (PDF, DOCX, images)
 - **Training type selection** (general/professional)
+- **Work type selection** (regular/self-paced)
+- **Additional document upload** for self-paced work
 - **Application dashboard** with status, credits, and justifications
 - **Appeal and feedback submission** for rejected cases
 - **Personal application history** and tracking
+- **Name validation status** display
 
 ### **Reviewer-Specific Features:**
 - **Application review dashboard** with filtering and sorting
 - **Decision management** (approve/reject with comments)
 - **Company validation insights** for better decision making
+- **Name validation insights** for identity verification
 - **Student communication** and comment review
 - **Workflow management** and status tracking
 
@@ -104,19 +110,22 @@ A modern React web app for OAMK students and reviewers to upload, process, and r
 
 ### **Student Portal Flow:**
 1. **Enter student email** and access student interface
-2. **Upload certificate** and select training type (degree is auto-fetched)
-3. **AI processes document** and shows results with company validation
-4. **Send for approval** (select reviewer)
-5. **Track application status** (accepted, rejected, pending, appeal)
-6. **Submit appeals** if applications are rejected
+2. **Upload certificate** and select training type and work type
+3. **Upload additional documents** (for self-paced work)
+4. **AI processes document** with company and name validation
+5. **Review results** with validation status and justifications
+6. **Send for approval** (select reviewer)
+7. **Track application status** (accepted, rejected, pending, appeal)
+8. **Submit appeals** if applications are rejected
 
 ### **Reviewer Portal Flow:**
 1. **Access reviewer interface** with application dashboard
-2. **Review pending applications** with company validation insights
-3. **Analyze AI evaluation results** and company legitimacy
-4. **Make decisions** (approve/reject) with detailed comments
-5. **Review student appeals** and provide feedback
-6. **Track review workflow** and decision history
+2. **Review pending applications** with validation insights
+3. **Analyze AI evaluation results** and validation status
+4. **Check company legitimacy** and name verification
+5. **Make decisions** (approve/reject) with detailed comments
+6. **Review student appeals** and provide feedback
+7. **Track review workflow** and decision history
 
 ---
 
@@ -150,6 +159,32 @@ A modern React web app for OAMK students and reviewers to upload, process, and r
       "Industry information confirmed"
     ]
   }
+}
+```
+
+## 👤 Name Validation Features
+
+### **What It Does:**
+- **Identity Verification**: Verifies employee name matches student identity
+- **Name Matching**: Compares extracted names with database student records
+- **Confidence Scoring**: Provides confidence levels for name matches
+- **Security Enhancement**: Prevents certificate fraud and identity mismatches
+
+### **UI Integration (Both Portals):**
+- **Name Validation Status** label showing match result
+- **View Details** button for detailed name validation results
+- **Name validation status** indicators (match/partial_match/mismatch/unknown)
+- **Rich explanation modal** with formatted name validation details
+
+### **Name Validation Results:**
+```json
+{
+  "name_validation_match_result": "match",
+  "name_validation_explanation": "Exact match: 'John Doe' matches 'John Doe'",
+  "name_match": true,
+  "db_student_full_name": "John Doe",
+  "extracted_employee_name": "John Doe",
+  "match_confidence": 1.0
 }
 ```
 
