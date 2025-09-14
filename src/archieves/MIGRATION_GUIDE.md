@@ -11,6 +11,23 @@ The API calls have been reorganized into separate modules for better code organi
 - `config.js` - Shared configuration and endpoints
 - `index.js` - Central export point
 
+## New Features Added
+
+### **Name Validation Support**
+- **Name validation status** display in UI components
+- **Identity verification** for employee names
+- **Match confidence** indicators and explanations
+
+### **Enhanced Validation System**
+- **Company validation** with legitimacy checking
+- **Name validation** with identity verification
+- **Rich content display** for validation results
+
+### **Work Type Support**
+- **Regular work** (REGULAR) - Traditional employment
+- **Self-paced work** (SELF_PACED) - Independent projects
+- **Additional document upload** for self-paced work
+
 ## Migration Steps
 
 ### 1. Replace Old Imports

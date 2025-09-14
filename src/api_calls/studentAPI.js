@@ -177,7 +177,7 @@ export async function getStudentApplications (email) {
  * @returns {Promise<Object>} Upload result
  * @throws {Error} If request fails
  */
-export async function uploadCertificate (studentId, file, trainingType) {
+export async function uploadCertificate (studentId, file, trainingType, workType = 'REGULAR', additionalDocuments = []) {
   const requestId = requestInterceptor.generateRequestId()
   const request = {
     id: requestId,
@@ -194,6 +194,14 @@ export async function uploadCertificate (studentId, file, trainingType) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('training_type', trainingType)
+    formData.append('work_type', workType)
+    
+    // Add additional documents for self-paced work
+    if (workType === 'SELF_PACED' && additionalDocuments && additionalDocuments.length > 0) {
+      additionalDocuments.forEach(doc => {
+        formData.append('additional_documents', doc)
+      })
+    }
 
     requestInterceptor.updateRequest(requestId, { progress: 25 })
 
@@ -425,6 +433,43 @@ export async function previewCertificate (certificateId) {
   } catch (error) {
     requestInterceptor.removeRequest(requestId)
     console.error('Error previewing certificate:', error)
+    throw error
+  }
+}
+
+/**
+ * Preview additional document file
+ *
+ * @param {string} certificateId - Certificate's UUID
+ * @param {string} documentId - Additional document's UUID
+ * @returns {Promise<string>} Preview URL
+ * @throws {Error} If request fails
+ */
+export async function previewAdditionalDocument (certificateId, documentId) {
+  const requestId = requestInterceptor.generateRequestId()
+  const request = {
+    id: requestId,
+    type: 'preview_additional_document',
+    progress: 0,
+    startTime: Date.now()
+  }
+
+  requestInterceptor.addRequest(request)
+
+  try {
+    requestInterceptor.updateRequest(requestId, { progress: 25 })
+
+    // For preview, we'll return the direct URL instead of fetching the blob
+    // This allows the iframe to load the content directly
+    const previewUrl = buildUrl(API_ENDPOINTS.ADDITIONAL_DOCUMENT_PREVIEW(certificateId, documentId))
+
+    requestInterceptor.updateRequest(requestId, { progress: 100 })
+    requestInterceptor.removeRequest(requestId)
+
+    return previewUrl
+  } catch (error) {
+    requestInterceptor.removeRequest(requestId)
+    console.error('Error previewing additional document:', error)
     throw error
   }
 }

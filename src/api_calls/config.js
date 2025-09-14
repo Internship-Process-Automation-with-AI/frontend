@@ -26,6 +26,8 @@ export const API_ENDPOINTS = {
   DOWNLOAD_CERTIFICATE: certificateId => `/certificate/${certificateId}`,
   CERTIFICATE_PREVIEW: certificateId => `/certificate/${certificateId}/preview`,
   CERTIFICATE_DETAILS: certificateId => `/certificate/${certificateId}/details`,
+  ADDITIONAL_DOCUMENT_PREVIEW: (certificateId, documentId) => 
+    `/certificate/${certificateId}/additional-document/${documentId}/preview`,
   CERTIFICATE_FEEDBACK: certificateId =>
     `/certificate/${certificateId}/feedback`,
   CERTIFICATE_REVIEW: certificateId => `/certificate/${certificateId}/review`,
